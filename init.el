@@ -45,6 +45,9 @@
 ;; Make yes-or-no questions answerable with 'y' or 'n'
 (fset 'yes-or-no-p 'y-or-n-p)
 
+(setq mac-command-modifier nil)
+(setq mac-option-modifier 'meta)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Terminal Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -346,11 +349,21 @@
   :ensure t
   :hook (yaml-mode . display-line-numbers-mode))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;; Mode Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; cfn-mode
 (define-derived-mode cfn-mode yaml-mode
   "Cloudformation"
   "Cloudformation template mode.")
 (add-to-list 'auto-mode-alist '("infrastructure/.*\\.yml$" . cfn-mode))
+
+
+(use-package dockerfile-mode
+  :ensure t)
+
+(use-package docker-compose-mode
+  :ensure t)
+
 
 (setq custom-file "~/.emacs.d/custom.elc")
 (load custom-file)
