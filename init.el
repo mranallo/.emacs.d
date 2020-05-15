@@ -15,7 +15,7 @@
   (add-hook 'after-save-hook 'emacs-lisp-byte-compile t t))
 )
 
-; don't display startup message
+;; don't display startup message
 (setq inhibit-startup-message t)
 
 ;; no toolbar
@@ -24,13 +24,10 @@
 ;; no menu-bar-mode
 (menu-bar-mode -1)
 
-;; no scroll-bar-mode
-(scroll-bar-mode -1)
-
-; disable backup files (foo~)
+;; disable backup files (foo~)
 (setq backup-inhibited t)
 
-; delete files by moving them to the OS X trash
+;; delete files by moving them to the OS X trash
 (setq delete-by-moving-to-trash t)
 
 ;; use default Mac browser
@@ -39,14 +36,34 @@
 ;; use line numbers in programming modes
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 
-:; highlight current line
+;; highlight current line
 (global-hl-line-mode t)
 
-; pick up changes to files on disk automatically (ie, after git pull)
+;; pick up changes to files on disk automatically (ie, after git pull)
 (global-auto-revert-mode 1)
 
-; Make yes-or-no questions answerable with 'y' or 'n'
+;; Make yes-or-no questions answerable with 'y' or 'n'
 (fset 'yes-or-no-p 'y-or-n-p)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;; Terminal Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defun is-in-terminal()
+    (not (display-graphic-p)))
+
+(defmacro when-term (&rest body)
+  "Works just like `progn' but will only evaluate expressions in VAR when Emacs is running in a terminal else just nil."
+  `(when (is-in-terminal) ,@body))
+
+;; ITERM2 MOUSE SUPPORT
+(when-term
+ (require 'mouse)
+ (xterm-mouse-mode t)
+ (defun track-mouse (e))
+ (setq mouse-sel-mode t))
+
+;; turn off scroll bar
+(if (display-graphic-p) (scroll-bar-mode -1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Packages ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
@@ -146,6 +163,7 @@
 
 ; Popwin
 (use-package popwin
+  :ensure t
   :config
   (progn
     (setq popwin:special-display-config nil)
@@ -180,7 +198,8 @@
   :bind-keymap
   ("C-z" . popwin:keymap))
 
-(use-package hydra)
+(use-package hydra
+  :ensure t)
 
 (use-package company
   :ensure t
