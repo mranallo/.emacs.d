@@ -3,9 +3,20 @@
 
 # Packaging
 .cask
+elpa/*
 
 # Backup files
 *~
 
 # Undo-tree save-files
 *.~undo-tree
+
+# IDO
+ido.last
+smex-items
+
+# Auto-generated customizations
+custom.el
+
+# Transient files
+transient/*
