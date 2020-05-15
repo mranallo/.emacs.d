@@ -292,6 +292,9 @@
   ;; show hidden files
   (setq-default neo-show-hidden-files t))
 
+(use-package dracula-theme
+  :ensure t) 
+
 (use-package doom-themes
   :ensure t
   :config
