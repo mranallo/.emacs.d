@@ -1,3 +1,6 @@
+;;; package --- Summary
+;;; Commentary:
+;;; Code:
 (package-initialize)
 
 ;; MELPA config
@@ -52,6 +55,7 @@
 
 
 (defun is-in-terminal()
+  "Will let you know if you are in a terminal session."
     (not (display-graphic-p)))
 
 (defmacro when-term (&rest body)
@@ -63,13 +67,14 @@
  (require 'mouse)
  (xterm-mouse-mode t)
  (defun track-mouse (e))
- (setq mouse-sel-mode t))
+ (global-set-key [mouse-4] 'scroll-down-line)
+ (global-set-key [mouse-5] 'scroll-up-line))
 
 ;; turn off scroll bar
 (if (display-graphic-p) (scroll-bar-mode -1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Packages ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 
+
 (use-package expand-region
   :ensure t
   :bind
@@ -110,15 +115,14 @@
 
 (use-package ido
   :init (progn
-          (ido-mode)
-          (ido-everywhere))
+	  (ido-mode))
   :config
   (setq ido-enable-flex-matching t
-        ido-create-new-buffer 'always
-        ido-use-filename-at-point 'guess
-        ido-default-file-method 'selected-window
-        ido-default-buffer-method 'selected-window
-        ido-use-faces nil))
+	ido-create-new-buffer 'always
+	ido-use-filename-at-point 'guess
+	ido-default-file-method 'selected-window
+	ido-default-buffer-method 'selected-window
+	ido-use-faces nil))
 
 (use-package beacon
   :ensure t
@@ -145,7 +149,7 @@
   :config
   (progn
     (add-hook 'text-mode-hook 'flyspell-mode)))
-  
+
 (use-package magit
   :ensure t
   :bind
@@ -154,6 +158,7 @@
   :config
   (progn
 (defadvice magit-status (around magit-fullscreen activate)
+  "Set Magit to run fullscreen."
   (window-configuration-to-register :magit-fullscreen)
   ad-do-it
   (delete-other-windows))
@@ -171,31 +176,31 @@
   (progn
     (setq popwin:special-display-config nil)
     (push '("*Backtrace*"
-            :dedicated t :position bottom :stick t :noselect nil :height 0.2)
-          popwin:special-display-config)
+	    :dedicated t :position bottom :stick t :noselect nil :height 0.2)
+	  popwin:special-display-config)
     (push '("*compilation*"
-            :dedicated t :position bottom :stick t :noselect t   :height 0.2)
-          popwin:special-display-config)
+	    :dedicated t :position bottom :stick t :noselect t   :height 0.2)
+	  popwin:special-display-config)
     (push '("*Compile-Log*"
-            :dedicated t :position bottom :stick t :noselect t   :height 0.2)
-          popwin:special-display-config)
+	    :dedicated t :position bottom :stick t :noselect t   :height 0.2)
+	  popwin:special-display-config)
     (push '("*Flycheck errors*"
-            :dedicated t :position bottom :stick t :noselect t   :height 0.2)
-          popwin:special-display-config)
+	    :dedicated t :position bottom :stick t :noselect t   :height 0.2)
+	  popwin:special-display-config)
     (push '("^\\*docker-build-output:.*\\*$"
-            :regexp t :dedicated t :position bottom :stick t :noselect t   :height 0.2  :tail t)
-          popwin:special-display-config)
+	    :regexp t :dedicated t :position bottom :stick t :noselect t   :height 0.2  :tail t)
+	  popwin:special-display-config)
     (push '("*Help*"
-            :dedicated t :position bottom :stick t :noselect nil :height 0.2)
-          popwin:special-display-config)
+	    :dedicated t :position bottom :stick t :noselect nil :height 0.2)
+	  popwin:special-display-config)
     (push '("*Shell Command Output*"
-            :dedicated t :position bottom :stick t :noselect nil :height 0.2)
-          popwin:special-display-config)
+	    :dedicated t :position bottom :stick t :noselect nil :height 0.2)
+	  popwin:special-display-config)
     (push '("*Warnings*"
-            :dedicated t :position bottom :stick t :noselect nil :height 0.2)
-          popwin:special-display-config)
+	    :dedicated t :position bottom :stick t :noselect nil :height 0.2)
+	  popwin:special-display-config)
     (push '("^\\*Man .*\\*$"
-            :regexp t    :position bottom :stick t :noselect nil :height 0.2)
+	    :regexp t    :position bottom :stick t :noselect nil :height 0.2)
 	  popwin:special-display-config)
     (popwin-mode 1))
   :bind-keymap
@@ -291,29 +296,29 @@
 
   ;; When running ‘projectile-switch-project’ (C-c p p), ‘neotree’ will change root automatically
   ;; (setq projectile-switch-project-action 'neotree-projectile-action)
-  
+
   ;; show hidden files
   (setq-default neo-show-hidden-files t))
 
 (use-package dracula-theme
-  :ensure t) 
+  :ensure t)
 
 (use-package doom-themes
   :ensure t
   :config
   ;; Global settings (defaults)
   (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
-        doom-themes-enable-italic t) ; if nil, italics is universally disabled
-  
+	doom-themes-enable-italic t) ; if nil, italics is universally disabled
+
   ;; Enable flashing mode-line on errors
   (doom-themes-visual-bell-config)
-  
+
   ;; Enable custom neotree theme (all-the-icons must be installed!)
   (doom-themes-neotree-config)
   ;; or for treemacs users
   ;; (setq doom-themes-treemacs-theme "doom-colors") ; use the colorful treemacs theme
   ;; (doom-themes-treemacs-config)
-  
+
   ;; Corrects (and improves) org-mode's native fontification.
   (doom-themes-org-config))
 
@@ -336,6 +341,9 @@
   :bind
   ("M-z" . undo-fu-only-undo)
   ("M-Z" . undo-fu-only-redo))
+
+(use-package simpleclip
+  :ensure t)
 
 (use-package which-key
   :ensure t
@@ -367,3 +375,6 @@
 
 (setq custom-file "~/.emacs.d/custom.elc")
 (load custom-file)
+
+(provide 'init)
+;;; init.el ends here
