@@ -287,9 +287,10 @@
 (use-package neotree
   :ensure t
   :bind ("<f8>" . 'neotree-toggle)
-  :init
+  :config
   ;; slow rendering
   (setq inhibit-compacting-font-caches t)
+  (setq neo-theme 'icons)
 
   ;; Every time when the neotree window is opened, let it find current file and jump to node
   (setq neo-smart-open t)
