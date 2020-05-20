@@ -21,3 +21,4 @@ custom.el
 # Transient files
 transient/*
 .savehist
+/.#smex-items
