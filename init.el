@@ -140,7 +140,8 @@
   ("C-c n" . deft)
   :config
   (setq deft-extensions '("txt"))
-  (setq deft-directory "/Users/mranallo/Library/Mobile Documents/iCloud~co~noteplan~NotePlan/Documents/Notes/"))
+  (setq deft-directory "/Users/mranallo/Library/Mobile Documents/iCloud~co~noteplan~NotePlan/Documents/Notes/")
+  (setq deft-auto-save-interval 0.0))
 
 (use-package flyspell
   :ensure t
@@ -372,7 +373,6 @@
 
 (use-package docker-compose-mode
   :ensure t)
-
 
 (setq custom-file "~/.emacs.d/custom.elc")
 (load custom-file)
