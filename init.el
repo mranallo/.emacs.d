@@ -210,6 +210,27 @@
 (use-package hydra
   :ensure t)
 
+(use-package ivy
+  :ensure t
+  :config
+  (ivy-mode 1)
+  (setq ivy-use-virtual-buffers t)
+  (setq enable-recursive-minibuffers t)
+  (global-set-key (kbd "C-c C-r") 'ivy-resume))
+
+(use-package ivy-rich
+  :ensure t
+  :init
+  (ivy-rich-mode t))
+
+(use-package counsel
+  :ensure t
+  :bind
+  ("M-x" . counsel-M-x)
+  ("M-s" . counsel-rg)
+  ("M-p" . counsel-git)
+  ("C-x C-f" . counsel-find-file))
+
 (use-package company
   :ensure t
   :defer t
