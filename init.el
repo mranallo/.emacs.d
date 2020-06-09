@@ -21,6 +21,10 @@
 ;; don't display startup message
 (setq inhibit-startup-message t)
 
+;; remove text from titlebar
+(setq frame-title-format nil)
+
+
 ;; no toolbar
 (tool-bar-mode -1)
 
@@ -216,12 +220,20 @@
   (ivy-mode 1)
   (setq ivy-use-virtual-buffers t)
   (setq enable-recursive-minibuffers t)
-  (global-set-key (kbd "C-c C-r") 'ivy-resume))
+  (global-set-key (kbd "C-c C-r") 'ivy-resume)
+  (define-key ivy-minibuffer-map (kbd "C-j") #'ivy-immediate-done)
+  (define-key ivy-minibuffer-map (kbd "RET") #'ivy-alt-done))
 
 (use-package ivy-rich
   :ensure t
+  :after (ivy)
   :init
-  (ivy-rich-mode t))
+  (setq ivy-rich-path-style 'abbrev
+	ivy-virtual-abbreviate 'full)
+  :config (ivy-rich-mode 1))
+
+(use-package all-the-icons-ivy-rich
+  :ensure t)
 
 (use-package counsel
   :ensure t
@@ -395,7 +407,7 @@
 (use-package docker-compose-mode
   :ensure t)
 
-(setq custom-file "~/.emacs.d/custom.elc")
+(setq custom-file "~/.emacs.d/custom.el")
 (load custom-file)
 
 (provide 'init)
