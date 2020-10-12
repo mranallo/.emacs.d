@@ -52,8 +52,14 @@
 ;; Make yes-or-no questions answerable with 'y' or 'n'
 (fset 'yes-or-no-p 'y-or-n-p)
 
-(setq mac-command-modifier nil)
+(setq mac-command-modifier 'super)
 (setq mac-option-modifier 'meta)
+
+;; key bindings
+(bind-keys*
+ ("C-M-n" . forward-page)
+ ("C-M-p" . backward-page))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Terminal Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -74,15 +80,28 @@
  (global-set-key [mouse-4] 'scroll-down-line)
  (global-set-key [mouse-5] 'scroll-up-line))
 
+
 ;; turn off scroll bar
 (if (display-graphic-p) (scroll-bar-mode -1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Packages ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(use-package comment-dwim-2
+  :ensure t
+  :bind
+  ("s-/" . comment-dwim-2))
+
 (use-package expand-region
   :ensure t
   :bind
   ("C-@" . er/expand-region))
+
+(use-package exec-path-from-shell
+  :ensure t
+  :if (memq window-system '(mac ns x))
+  :config
+  (setq exec-path-from-shell-variables '("PATH" "GOPATH"))
+  (exec-path-from-shell-initialize))
 
 (use-package utilities
   :load-path "site-lisp/utilities"
@@ -154,6 +173,8 @@
   :config
   (progn
     (add-hook 'text-mode-hook 'flyspell-mode)))
+(use-package go-mode
+  :ensure t)
 
 (use-package magit
   :ensure t
@@ -179,34 +200,11 @@
   :ensure t
   :config
   (progn
-    (setq popwin:special-display-config nil)
-    (push '("*Backtrace*"
-	    :dedicated t :position bottom :stick t :noselect nil :height 0.2)
-	  popwin:special-display-config)
-    (push '("*compilation*"
-	    :dedicated t :position bottom :stick t :noselect t   :height 0.2)
-	  popwin:special-display-config)
-    (push '("*Compile-Log*"
-	    :dedicated t :position bottom :stick t :noselect t   :height 0.2)
-	  popwin:special-display-config)
-    (push '("*Flycheck errors*"
-	    :dedicated t :position bottom :stick t :noselect t   :height 0.2)
-	  popwin:special-display-config)
-    (push '("^\\*docker-build-output:.*\\*$"
-	    :regexp t :dedicated t :position bottom :stick t :noselect t   :height 0.2  :tail t)
-	  popwin:special-display-config)
-    (push '("*Help*"
-	    :dedicated t :position bottom :stick t :noselect nil :height 0.2)
-	  popwin:special-display-config)
-    (push '("*Shell Command Output*"
-	    :dedicated t :position bottom :stick t :noselect nil :height 0.2)
-	  popwin:special-display-config)
-    (push '("*Warnings*"
-	    :dedicated t :position bottom :stick t :noselect nil :height 0.2)
-	  popwin:special-display-config)
-    (push '("^\\*Man .*\\*$"
-	    :regexp t    :position bottom :stick t :noselect nil :height 0.2)
-	  popwin:special-display-config)
+    (push "*Compile-Log*" popwin:special-display-config)
+    (push "*compilation*" popwin:special-display-config)
+  ;;   (push '("^\\*docker-build-output:.*\\*$"
+  ;;	    :regexp t :dedicated t :position bottom :stick t :noselect t   :height 0.2  :tail t)
+  ;;	  popwin:special-display-config)
     (popwin-mode 1))
   :bind-keymap
   ("C-z" . popwin:keymap))
@@ -233,15 +231,22 @@
   :config (ivy-rich-mode 1))
 
 (use-package all-the-icons-ivy-rich
-  :ensure t)
+  :ensure t
+  :config (all-the-icons-ivy-rich-mode 1))
 
 (use-package counsel
   :ensure t
   :bind
   ("M-x" . counsel-M-x)
+  ("C-x m" . counsel-M-x)
+  ("C-x C-m" . counsel-M-x)
   ("M-s" . counsel-rg)
   ("M-p" . counsel-git)
-  ("C-x C-f" . counsel-find-file))
+  ("C-x C-f" . counsel-find-file)
+  ("C-x f" . counsel-find-file))
+
+(use-package swiper
+  :bind ("C-s" . swiper))
 
 (use-package company
   :ensure t
@@ -263,12 +268,6 @@
    ("<tab>" . company-complete-selection)
    ("TAB" . company-complete-selection))
   :diminish company-mode)
-
-(use-package company-tabnine
-  :ensure t
-  :config
-  (progn
-    (add-to-list 'company-backends #'company-tabnine)))
 
 (use-package deadgrep
   :ensure t
@@ -306,8 +305,7 @@
   :ensure t
   :bind
   (([remap execute-extended-command] . smex)
-   ("M-X" . smex-major-mode-commands)
-   ("C-x C-m" . smex)))
+   ("M-X" . smex-major-mode-commands)))
 
 (use-package whitespace-cleanup-mode
   :ensure t
@@ -320,9 +318,11 @@
 
 (use-package neotree
   :ensure t
-  :bind ("<f8>" . 'neotree-toggle)
+  :bind
+  ("<f8>" . 'neotree-toggle)
+  ("s-\\" . 'neotree-toggle)
   :config
-  ;; slow rendering
+  ;; slow renderig
   (setq inhibit-compacting-font-caches t)
   (setq neo-theme 'icons)
 
@@ -335,8 +335,8 @@
   ;; show hidden files
   (setq-default neo-show-hidden-files t))
 
-(use-package dracula-theme
-  :ensure t)
+;; (use-package dracula-theme
+;;   :ensure t)
 
 (use-package doom-themes
   :ensure t
@@ -374,11 +374,15 @@
 (use-package undo-fu
   :ensure t
   :bind
-  ("M-z" . undo-fu-only-undo)
-  ("M-Z" . undo-fu-only-redo))
+  ("s-z" . undo-fu-only-undo)
+  ("s-Z" . undo-fu-only-redo))
 
 (use-package simpleclip
-  :ensure t)
+  :ensure t
+  :bind
+  ("s-c" . simpleclip-copy)
+  ("s-x" . simpleclip-cut)
+  ("s-v" . simpleclip-paste))
 
 (use-package which-key
   :ensure t
@@ -391,6 +395,27 @@
 (use-package yaml-mode
   :ensure t
   :hook (yaml-mode . display-line-numbers-mode))
+
+(use-package lsp-mode
+  :ensure t
+  :hook (
+	 (go-mode . lsp)
+	 (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp lsp-deferred)
+
+(use-package lsp-ui
+  :ensure t
+  :commands lsp-ui-mode)
+(use-package lsp-ivy
+  :ensure t
+  :commands lsp-ivy-workspace-symbol)
+(use-package lsp-treemacs
+  :ensure t
+  :commands lsp-treemacs-errors-list)
+
+(use-package company-box
+  :ensure t
+  :hook (company-mode . company-box-mode))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Mode Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;
 
