@@ -16,7 +16,10 @@
 
 (add-hook 'emacs-lisp-mode-hook '(lambda ()
   (add-hook 'after-save-hook 'emacs-lisp-byte-compile t t))
-)
+	  )
+
+;; Enable server for opening file/folder from emacsclient
+(server-start)
 
 ;; don't display startup message
 (setq inhibit-startup-message t)
@@ -195,6 +198,11 @@
   (kill-buffer)
   (jump-to-register :magit-fullscreen))))
 
+(use-package persistent-scratch
+  :ensure t
+  :config
+  (persistent-scratch-setup-default))
+
 ; Popwin
 (use-package popwin
   :ensure t
@@ -369,7 +377,7 @@
   (minibuffer-setup . solaire-mode-in-minibuffer)
   :config
   (solaire-global-mode +1)
-  (solaire-mode-swap-bg))
+  (setq solaire-mode-auto-swap-bg +1))
 
 (use-package undo-fu
   :ensure t

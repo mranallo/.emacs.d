@@ -22,3 +22,6 @@ custom.el
 transient/*
 .savehist
 /.#smex-items
+.persistent-scratch
+recentf
+.lsp-session-v1
