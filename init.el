@@ -1,22 +1,48 @@
 ;;; package --- Summary
 ;;; Commentary:
 ;;; Code:
+
+;; Native compilation support - Emacs 30 has improved native compilation on macOS
+;; This workaround is likely not needed for Emacs 30 but keeping modified version
+;; to avoid potential issues. Remove if native compilation works without it.
+(when (and (fboundp 'native-comp-available-p)
+           (native-comp-available-p))
+  (setenv "LIBRARY_PATH"
+	  (string-join
+	   '("/opt/homebrew/opt/gcc/lib/gcc/current"
+	     "/opt/homebrew/opt/libgccjit/lib/gcc/current"
+	     "/opt/homebrew/opt/gcc/lib/gcc/current/gcc/aarch64-apple-darwin24/14")
+	   ":")))
+
+;; Package management setup
+;; Prevent package.el from auto-initializing; we handle it manually
+(setq package-enable-at-startup nil)
+
+(require 'package)
+;; Setup package archives
+(setq package-archives
+      '(("gnu" . "https://elpa.gnu.org/packages/")
+        ("melpa-stable" . "https://stable.melpa.org/packages/")
+        ("melpa" . "https://melpa.org/packages/")))
+;; Prioritize archives: GNU > MELPA Stable > MELPA
+(setq package-archive-priorities
+      '(("gnu" . 10)
+        ("melpa-stable" . 5)
+        ("melpa" . 0)))
 (package-initialize)
 
-;; MELPA config
-(require 'package)
-(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
-
-;; Bootstrap `use-package'
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-
+;; Use built-in use-package for cleaner package configurations
 (require 'use-package)
+(setq use-package-always-ensure t
+      use-package-verbose t
+      use-package-compute-statistics t
+      use-package-expand-minimally t
+      use-package-minimum-reported-time 0.2)
 
-(add-hook 'emacs-lisp-mode-hook '(lambda ()
-  (add-hook 'after-save-hook 'emacs-lisp-byte-compile t t))
-	  )
+;; Byte compile lisp
+(add-hook 'emacs-lisp-mode-hook
+          (lambda ()
+            (add-hook 'after-save-hook #'emacs-lisp-byte-compile nil 'local)))
 
 ;; Enable server for opening file/folder from emacsclient
 (server-start)
@@ -32,7 +58,7 @@
 (tool-bar-mode -1)
 
 ;; no menu-bar-mode
-(menu-bar-mode -1)
+;; (menu-bar-mode -1)
 
 ;; disable backup files (foo~)
 (setq backup-inhibited t)
@@ -53,7 +79,7 @@
 (global-auto-revert-mode 1)
 
 ;; Make yes-or-no questions answerable with 'y' or 'n'
-(fset 'yes-or-no-p 'y-or-n-p)
+(setq use-short-answers t)  ;; Preferred in Emacs 28+ over fset yes-or-no-p
 
 (setq mac-command-modifier 'super)
 (setq mac-option-modifier 'meta)
@@ -61,7 +87,12 @@
 ;; key bindings
 (bind-keys*
  ("C-M-n" . forward-page)
- ("C-M-p" . backward-page))
+ ("C-M-p" . backward-page)
+ ;; macOS-style: Command for copy/cut/paste/select-all
+ ("s-c" . kill-ring-save)
+ ("s-x" . kill-region)
+ ("s-v" . yank)
+ ("s-a" . mark-whole-buffer))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Terminal Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -90,17 +121,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Packages ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package comment-dwim-2
-  :ensure t
   :bind
   ("s-/" . comment-dwim-2))
 
 (use-package expand-region
-  :ensure t
   :bind
   ("C-@" . er/expand-region))
 
 (use-package exec-path-from-shell
-  :ensure t
   :if (memq window-system '(mac ns x))
   :config
   (setq exec-path-from-shell-variables '("PATH" "GOPATH"))
@@ -115,7 +143,6 @@
   ("C-c d" . duplicate-line-or-region))
 
 (use-package vterm
-  :ensure t
   :init
   (progn
     (add-to-list 'display-buffer-alist
@@ -129,39 +156,65 @@
 		   (window-height . 0.3)))))
 
 (use-package vterm-toggle
-  :ensure t
-  :chords
-  ("``" . vterm-toggle)
   :config
   (setq vterm-toggle-fullscreen-p nil))
 
 (use-package use-package-chords
-  :ensure t
-  :config (key-chord-mode 1))
+  :config (key-chord-mode 1)
+  (key-chord-define-global "``" 'vterm-toggle))
 
-(use-package ido
-  :init (progn
-	  (ido-mode))
+;; Use built-in tab-bar in Emacs 27+
+(use-package tab-bar
+  :ensure nil  ;; built-in
   :config
-  (setq ido-enable-flex-matching t
-	ido-create-new-buffer 'always
-	ido-use-filename-at-point 'guess
-	ido-default-file-method 'selected-window
-	ido-default-buffer-method 'selected-window
-	ido-use-faces nil))
+  (tab-bar-mode 1)
+  (setq tab-bar-show 1))
+
+;; Replace ido with Vertico/Consult for better completion in Emacs 30
+(use-package vertico
+  :init
+  (vertico-mode)
+  :config
+  (setq vertico-cycle t))
+
+(use-package orderless
+  :init
+  (setq completion-styles '(orderless basic)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion)))))
+
+(use-package marginalia
+  :init
+  (marginalia-mode))
+
+(use-package consult
+  :bind
+  (("C-s" . consult-line)
+   ("C-x b" . consult-buffer)
+   ("M-y" . consult-yank-pop)
+   ("M-s" . consult-ripgrep)
+   ("M-p" . consult-git-grep)))
+
+(use-package embark
+  :bind
+  (("C-." . embark-act)
+   ("C-;" . embark-dwim)
+   ("C-h B" . embark-bindings)))
+
+(use-package embark-consult
+  :after (embark consult)
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
 
 (use-package beacon
-  :ensure t
   :init
   (beacon-mode +1))
 
 (use-package browse-kill-ring
-  :ensure t
   :bind
   ("C-x C-y" . browse-kill-ring))
 
 (use-package deft
-  :ensure t
   :bind
   ("C-c n" . deft)
   :config
@@ -170,119 +223,54 @@
   (setq deft-auto-save-interval 0.0))
 
 (use-package flyspell
-  :ensure t
   :bind
   ("<mouse-3>" . flyspell-correct-word)
   :config
   (progn
     (add-hook 'text-mode-hook 'flyspell-mode)))
-(use-package go-mode
-  :ensure t)
+
+(use-package go-mode)
 
 (use-package magit
-  :ensure t
   :bind
   ("<f5>" . magit-status)
   ("<f6>" . magit-blame-addition)
   :config
   (progn
-(defadvice magit-status (around magit-fullscreen activate)
+ (defadvice magit-status (around magit-fullscreen activate)
   "Set Magit to run fullscreen."
   (window-configuration-to-register :magit-fullscreen)
   ad-do-it
-  (delete-other-windows))
-
+  (delete-other-windows)))
+  
 (defun magit-quit-session ()
   "Restore the previous window configuration and kill the magit buffer."
   (interactive)
   (kill-buffer)
-  (jump-to-register :magit-fullscreen))))
+  (jump-to-register :magit-fullscreen)))
 
 (use-package persistent-scratch
-  :ensure t
   :config
   (persistent-scratch-setup-default))
 
-; Popwin
+;; Popwin
 (use-package popwin
-  :ensure t
   :config
   (progn
     (push "*Compile-Log*" popwin:special-display-config)
     (push "*compilation*" popwin:special-display-config)
-  ;;   (push '("^\\*docker-build-output:.*\\*$"
-  ;;	    :regexp t :dedicated t :position bottom :stick t :noselect t   :height 0.2  :tail t)
-  ;;	  popwin:special-display-config)
     (popwin-mode 1))
   :bind-keymap
   ("C-z" . popwin:keymap))
 
-(use-package hydra
-  :ensure t)
+(use-package hydra)
 
-(use-package ivy
-  :ensure t
-  :config
-  (ivy-mode 1)
-  (setq ivy-use-virtual-buffers t)
-  (setq enable-recursive-minibuffers t)
-  (global-set-key (kbd "C-c C-r") 'ivy-resume)
-  (define-key ivy-minibuffer-map (kbd "C-j") #'ivy-immediate-done)
-  (define-key ivy-minibuffer-map (kbd "RET") #'ivy-alt-done))
-
-(use-package ivy-rich
-  :ensure t
-  :after (ivy)
-  :init
-  (setq ivy-rich-path-style 'abbrev
-	ivy-virtual-abbreviate 'full)
-  :config (ivy-rich-mode 1))
-
-(use-package all-the-icons-ivy-rich
-  :ensure t
-  :config (all-the-icons-ivy-rich-mode 1))
-
-(use-package counsel
-  :ensure t
-  :bind
-  ("M-x" . counsel-M-x)
-  ("C-x m" . counsel-M-x)
-  ("C-x C-m" . counsel-M-x)
-  ("M-s" . counsel-rg)
-  ("M-p" . counsel-git)
-  ("C-x C-f" . counsel-find-file)
-  ("C-x f" . counsel-find-file))
-
-(use-package swiper
-  :bind ("C-s" . swiper))
-
-(use-package company
-  :ensure t
-  :defer t
-  :init
-  (global-company-mode)
-  (setq company-tooltip-align-annotations 't)
-  :config
-  (progn
-    ;; Use Company for completion
-    (bind-key [remap completion-at-point] #'company-complete company-mode-map))
-  :bind
-  (:map company-active-map
-   ("RET" . nil)
-   ("<ret>" . nil)
-   ("<right>" . company-complete-common)
-   ("C-p" . company-select-previous-or-abort)
-   ("C-n" . company-select-next-or-abort)
-   ("<tab>" . company-complete-selection)
-   ("TAB" . company-complete-selection))
-  :diminish company-mode)
+;; Removed ivy/swiper/counsel in favor of Vertico/Consult above
 
 (use-package deadgrep
-  :ensure t
-  :bind ("<f7>" . deadgrep ))
+  :bind ("<f7>" . deadgrep))
 
 (use-package flycheck
-  :ensure t
   :defer t
   :init (global-flycheck-mode)
   :config
@@ -304,125 +292,230 @@
     (add-to-list 'flycheck-checkers 'cfn-lint)))
 
 (use-package flycheck-pos-tip
-  :ensure t
   :defer t
   :config
   (with-eval-after-load 'flycheck (flycheck-pos-tip-mode)))
 
-(use-package smex
-  :ensure t
-  :bind
-  (([remap execute-extended-command] . smex)
-   ("M-X" . smex-major-mode-commands)))
-
+;; Using built-in completion with Vertico instead of smex
 (use-package whitespace-cleanup-mode
-  :ensure t
   :init
   (progn
     (global-whitespace-cleanup-mode t)))
 
-(use-package all-the-icons
-  :ensure t)
+(use-package nerd-icons)
 
-(use-package yaml-pro
-  :ensure t)
+(use-package nerd-icons-completion
+  :after (marginalia nerd-icons)
+  :hook (marginalia-mode . nerd-icons-completion-marginalia-setup)
+  :init
+  (nerd-icons-completion-mode))
 
-(use-package neotree
-  :ensure t
-  :bind
-  ("<f8>" . 'neotree-toggle)
-  ("s-\\" . 'neotree-toggle)
+(use-package yaml-pro)
+
+(use-package winum)
+
+(use-package treemacs
+  :defer t
+  :bind (("s-\\" . treemacs))  ;; Command-\\ to toggle file tree
+  :init
+  (with-eval-after-load 'winum
+    (define-key winum-keymap (kbd "s-0") #'treemacs-select-window))
   :config
-  ;; slow renderig
-  (setq inhibit-compacting-font-caches t)
-  (setq neo-theme 'icons)
+  (progn
+    (setq treemacs-collapse-dirs                   (if treemacs-python-executable 3 0)
+	  treemacs-deferred-git-apply-delay        0.5
+	  treemacs-directory-name-transformer      #'identity
+	  treemacs-display-in-side-window          t
+	  treemacs-eldoc-display                   'simple
+	  treemacs-file-event-delay                2000
+	  treemacs-file-extension-regex            treemacs-last-period-regex-value
+	  treemacs-file-follow-delay               0.2
+	  treemacs-file-name-transformer           #'identity
+	  treemacs-follow-after-init               t
+	  treemacs-expand-after-init               t
+	  treemacs-find-workspace-method           'find-for-file-or-pick-first
+	  treemacs-git-command-pipe                ""
+	  treemacs-goto-tag-strategy               'refetch-index
+	  treemacs-header-scroll-indicators        '(nil . "^^^^^^")
+	  treemacs-hide-dot-git-directory          t
+	  treemacs-indentation                     2
+	  treemacs-indentation-string              " "
+	  treemacs-is-never-other-window           nil
+	  treemacs-max-git-entries                 5000
+	  treemacs-missing-project-action          'ask
+	  treemacs-move-forward-on-expand          nil
+	  treemacs-no-png-images                   nil
+	  treemacs-no-delete-other-windows         t
+	  treemacs-project-follow-cleanup          t
+	  treemacs-persist-file                    (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
+	  treemacs-position                        'left
+	  treemacs-read-string-input               'from-child-frame
+	  treemacs-recenter-distance               0.1
+	  treemacs-recenter-after-file-follow      nil
+	  treemacs-recenter-after-tag-follow       nil
+	  treemacs-recenter-after-project-jump     'always
+	  treemacs-recenter-after-project-expand   'on-distance
+	  treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask")
+	  treemacs-show-cursor                     nil
+	  treemacs-show-hidden-files               t
+	  treemacs-silent-filewatch                nil
+	  treemacs-silent-refresh                  nil
+	  treemacs-sorting                         'alphabetic-asc
+	  treemacs-select-when-already-in-treemacs 'move-back
+	  treemacs-space-between-root-nodes        t
+	  treemacs-tag-follow-cleanup              t
+	  treemacs-tag-follow-delay                1.5
+	  treemacs-text-scale                      nil
+	  treemacs-user-mode-line-format           nil
+	  treemacs-user-header-line-format         nil
+	  treemacs-wide-toggle-width               70
+	  treemacs-width                           35
+	  treemacs-width-increment                 1
+	  treemacs-width-is-initially-locked       t
+	  treemacs-workspace-switch-cleanup        nil)
 
-  ;; Every time when the neotree window is opened, let it find current file and jump to node
-  (setq neo-smart-open t)
+    (treemacs-filewatch-mode t)
+    (treemacs-fringe-indicator-mode 'always)
 
-  ;; When running ‘projectile-switch-project’ (C-c p p), ‘neotree’ will change root automatically
-  ;; (setq projectile-switch-project-action 'neotree-projectile-action)
+    (pcase (cons (not (null (executable-find "git")))
+		 (not (null treemacs-python-executable)))
+      (`(t . t)
+       (treemacs-git-mode 'deferred))
+      (`(t . _)
+       (treemacs-git-mode 'simple)))
 
-  ;; show hidden files
-  (setq-default neo-show-hidden-files t))
+    (treemacs-hide-gitignored-files-mode nil))
+  :bind
+  (:map global-map
+	("M-0"       . treemacs-select-window)
+	("C-x t 1"   . treemacs-delete-other-windows)
+	("C-x t t"   . treemacs)
+	("C-\\"      . treemacs)
+	("C-x t d"   . treemacs-select-directory)
+	("C-x t B"   . treemacs-bookmark)
+	("C-x t C-t" . treemacs-find-file)
+	("C-x t M-t" . treemacs-find-tag)))
 
-;; (use-package dracula-theme
-;;   :ensure t)
+(use-package treemacs-projectile
+  :after (treemacs projectile))
+
+(use-package treemacs-icons-dired
+  :hook (dired-mode . treemacs-icons-dired-enable-once))
+
+(use-package treemacs-magit
+  :after (treemacs magit))
+
+(use-package treemacs-persp
+  :after (treemacs persp-mode)
+  :config (treemacs-set-scope-type 'Perspectives))
+
+(use-package treemacs-tab-bar
+  :after (treemacs)
+  :config (treemacs-set-scope-type 'Tabs))
 
 (use-package doom-themes
-  :ensure t
   :config
-  ;; Global settings (defaults)
-  (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
-	doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  (setq doom-themes-enable-bold t
+	doom-themes-enable-italic t)
 
-  ;; Enable flashing mode-line on errors
-  (doom-themes-visual-bell-config)
+  (setq doom-themes-treemacs-theme "nerd-icons")
+  (doom-themes-treemacs-config)
+  (doom-themes-org-config)
 
-  ;; Enable custom neotree theme (all-the-icons must be installed!)
-  (doom-themes-neotree-config)
-  ;; or for treemacs users
-  ;; (setq doom-themes-treemacs-theme "doom-colors") ; use the colorful treemacs theme
-  ;; (doom-themes-treemacs-config)
-
-  ;; Corrects (and improves) org-mode's native fontification.
-  (doom-themes-org-config))
+  ;; Set a dark titlebar
+  (set-frame-parameter nil 'ns-appearance 'dark)
+  (set-frame-parameter nil 'ns-transparent-titlebar nil))
 
 (use-package doom-modeline
-  :ensure t
-  :init
-  (doom-modeline-mode))
+  :init (doom-modeline-mode)
+  :custom
+  (doom-modeline-icon t)
+  (doom-modeline-major-mode-icon t)
+  (doom-modeline-major-mode-color-icon t)
+  (doom-modeline-icon-scale-factor 1.0)
+  (doom-modeline-minor-modes nil))
 
 (use-package solaire-mode
-  :ensure t
   :config
   (solaire-global-mode +1))
 
+;; Use built-in undo-redo functionality from Emacs 28+
 (use-package undo-fu
-  :ensure t
   :bind
   ("s-z" . undo-fu-only-undo)
   ("s-Z" . undo-fu-only-redo))
 
 (use-package simpleclip
-  :ensure t
   :bind
   ("s-c" . simpleclip-copy)
   ("s-x" . simpleclip-cut)
   ("s-v" . simpleclip-paste))
 
 (use-package which-key
-  :ensure t
   :config
   (which-key-mode +1))
 
 (use-package winner
+  :ensure nil  ;; built-in
   :init (winner-mode))
 
 (use-package yaml-mode
-  :ensure t
   :hook (yaml-mode . display-line-numbers-mode))
 
+;; Using built-in ligature support in Emacs 29+
+(when (fboundp 'global-ligature-mode)
+  (use-package ligature
+    :config
+    ;; Enable the "www" ligature in every possible major mode
+    (ligature-set-ligatures 't '("www"))
+    ;; Enable traditional ligature support in eww-mode, if the
+    ;; `variable-pitch' face supports it
+    (ligature-set-ligatures 'eww-mode '("ff" "fi" "ffi"))
+    ;; Enable all Cascadia Code ligatures in programming modes
+    (ligature-set-ligatures 'prog-mode '("|||>" "<|||" "<==>" "<!--" "####" "~~>" "***" "||=" "||>"
+                                         ":::" "::=" "=:=" "===" "==>" "=!=" "=>>" "=<<" "=/=" "!=="
+                                         "!!." ">=>" ">>=" ">>>" ">>-" ">->" "->>" "-->" "---" "-<<"
+                                         "<~~" "<~>" "<*>" "<||" "<|>" "<$>" "<==" "<=>" "<=<" "<->"
+                                         "<--" "<-<" "<<=" "<<-" "<<<" "<+>" "</>" "###" "#_(" "..<"
+                                         "..." "+++" "/==" "///" "_|_" "www" "&&" "^=" "~~" "~@" "~="
+                                         "~>" "~-" "**" "*>" "*/" "||" "|}" "|]" "|=" "|>" "|-" "{|"
+                                         "[|" "]#" "::" ":=" ":>" ":<" "$>" "==" "=>" "!=" "!!" ">:"
+                                         ">=" ">>" ">-" "-~" "-|" "->" "--" "-<" "<~" "<*" "<|" "<:"
+                                         "<$" "<=" "<>" "<-" "<<" "<+" "</" "#{" "#[" "#:" "#=" "#!"
+                                         "##" "#(" "#?" "#_" "%%" ".=" ".-" ".." ".?" "+>" "++" "?:"
+                                         "?=" "?." "??" ";;" "/*" "/=" "/>" "//" "__" "~~" "(*" "*)"
+                                         "\\\\" "://"))
+    ;; Enables ligature checks globally in all buffers
+    (global-ligature-mode t)))
+
+;; Use the new built-in tree-sitter support in Emacs 29+
+(when (fboundp 'global-tree-sitter-mode)
+  (use-package tree-sitter
+    :ensure nil  ;; built-in
+    :hook
+    ((go-mode . tree-sitter-mode)
+     (js-mode . tree-sitter-mode)
+     (typescript-mode . tree-sitter-mode)
+     (python-mode . tree-sitter-mode)
+     (ruby-mode . tree-sitter-mode)
+     (rust-mode . tree-sitter-mode))
+    :config
+    (global-tree-sitter-mode)))
+
 (use-package lsp-mode
-  :ensure t
   :hook (
 	 (go-mode . lsp)
 	 (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp lsp-deferred)
 
 (use-package lsp-ui
-  :ensure t
   :commands lsp-ui-mode)
-(use-package lsp-ivy
-  :ensure t
-  :commands lsp-ivy-workspace-symbol)
+
+;; Use consult instead of lsp-ivy
 (use-package lsp-treemacs
-  :ensure t
   :commands lsp-treemacs-errors-list)
 
-(use-package company-box
-  :ensure t
-  :hook (company-mode . company-box-mode))
+;; Removed company-box since we're using completion-preview-mode
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Mode Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -433,14 +526,46 @@
 (add-to-list 'auto-mode-alist '("infrastructure/.*\\.yml$" . cfn-mode))
 
 
-(use-package dockerfile-mode
-  :ensure t)
+(use-package dockerfile-mode)
 
-(use-package docker-compose-mode
-  :ensure t)
+(use-package docker-compose-mode)
 
-(setq custom-file "~/.emacs.d/custom.el")
-(load custom-file)
+(use-package chatgpt-shell
+  :custom
+  (chatgpt-shell-openai-key (getenv "OPENAI_API_KEY")))
+
+;; Microsoft copilot integration
+(use-package copilot
+  :hook (prog-mode . copilot-mode)
+  :bind (:map copilot-completion-map
+              ("<tab>" . 'copilot-accept-completion)
+              ("TAB" . 'copilot-accept-completion)
+              ("C-TAB" . 'copilot-accept-completion-by-word)
+              ("C-<tab>" . 'copilot-accept-completion-by-word)
+              ("C-n" . 'copilot-next-completion)
+              ("C-p" . 'copilot-previous-completion))
+
+  :config
+  (add-to-list 'copilot-indentation-alist '(prog-mode 2))
+  (add-to-list 'copilot-indentation-alist '(org-mode 2))
+  (add-to-list 'copilot-indentation-alist '(text-mode 2))
+  (add-to-list 'copilot-indentation-alist '(js-mode 2))
+  (add-to-list 'copilot-indentation-alist '(emacs-lisp-mode 2)))
+
+
+(use-package nerd-icons-dired
+  :hook (dired-mode . nerd-icons-dired-mode))
+
+(use-package treemacs-nerd-icons
+  :config
+  (treemacs-load-theme "nerd-icons"))
+
+(use-package treemacs-magit
+  :after (treemacs magit))
+
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(when (file-exists-p custom-file)
+  (load custom-file nil 'nomessage))
 
 (provide 'init)
 ;;; init.el ends here
