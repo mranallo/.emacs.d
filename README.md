@@ -27,7 +27,7 @@ Everything is managed with [`use-package`](https://github.com/jwiegley/use-packa
 - **Project & File Navigation**: Treemacs with Nerd Icons, Winum, Projectile integration
 - **UI & Aesthetics**: Doom Themes, Doom Modeline, Solaire Mode, Ligatures, Nerd Icons
 - **Language Support**: LSP Mode + UI + Treemacs, Tree‑sitter, YAML, Go, Docker, CloudFormation
-- **Productivity Tools**: Magit, Flycheck, Deadgrep, VTerm + VTerm‑Toggle, ChatGPT Shell, Copilot
+- **Productivity Tools**: Magit, Flycheck, Deadgrep, VTerm + VTerm‑Toggle, ChatGPT Shell
 - **Editing Enhancements**: Expand‑Region, Comment‑DWIM‑2, Duplicate Line, Whitespace Cleanup, Undo‑Fu, Simpleclip
 - **Core Tweaks**: Better `yes-or-no` answers, no backup files, server mode, macOS Super keybindings
 
