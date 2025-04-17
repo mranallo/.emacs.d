@@ -33,6 +33,10 @@
 
 ;; Use built-in use-package for cleaner package configurations
 (require 'use-package)
+(eval-and-compile
+ ;; Silence native-compiler warnings for external doom-themes functions
+ (declare-function doom-themes-treemacs-config "doom-themes" nil)
+ (declare-function doom-themes-org-config     "doom-themes" nil))
 (setq use-package-always-ensure t
       use-package-verbose t
       use-package-compute-statistics t
@@ -272,24 +276,23 @@
 
 (use-package flycheck
   :defer t
-  :init (global-flycheck-mode)
-  :config
-  (progn
-    (flycheck-define-checker cfn-lint
-      "A Cloudformation linter using cfn-python-lint.
-       See URL 'https://github.com/awslabs/cfn-python-lint'."
-      :command ("cfn-lint" "-f" "parseable" source)
-      :error-patterns (
-		       (warning line-start (file-name) ":" line ":" column
-				":" (one-or-more digit) ":" (one-or-more digit) ":"
-				(id "W" (one-or-more digit)) ":" (message) line-end)
-		       (error line-start (file-name) ":" line ":" column
-			      ":" (one-or-more digit) ":" (one-or-more digit) ":"
-			      (id "E" (one-or-more digit)) ":" (message) line-end)
-		       )
-      :modes (cfn-mode)
-      )
-    (add-to-list 'flycheck-checkers 'cfn-lint)))
+  :init (global-flycheck-mode))
+
+;; Define custom CloudFormation linter once Flycheck is loaded
+(with-eval-after-load 'flycheck
+  (flycheck-define-checker cfn-lint
+    "A CloudFormation linter using cfn-python-lint.
+See URL 'https://github.com/aws-cloudformation/cfn-lint'."
+    :command ("cfn-lint" "-f" "parseable" source)
+    :error-patterns
+    ((warning line-start (file-name) ":" line ":" column
+              ":" (one-or-more digit) ":" (one-or-more digit) ":"
+              (id "W" (one-or-more digit)) ":" (message) line-end)
+     (error line-start (file-name) ":" line ":" column
+            ":" (one-or-more digit) ":" (one-or-more digit) ":"
+            (id "E" (one-or-more digit)) ":" (message) line-end))
+    :modes cfn-mode)
+  (add-to-list 'flycheck-checkers 'cfn-lint))
 
 (use-package flycheck-pos-tip
   :defer t
@@ -541,7 +544,9 @@
   :hook (dired-mode . nerd-icons-dired-mode))
 
 (use-package treemacs-nerd-icons
+  :after (treemacs nerd-icons)
   :config
+  ;; Load the nerd-icons theme for Treemacs after Treemacs and nerd-icons are available
   (treemacs-load-theme "nerd-icons"))
 
 (use-package treemacs-magit
