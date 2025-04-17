@@ -3,14 +3,18 @@
 ;;; This is a handfull of my utilities
 ;;; Code:
 (defun move-line-up ()
-  "Move up the current line."
+  "Move the current line up by one line.
+This function transposes the current line with the line above it.
+It maintains the indentation level of the moved line."
   (interactive)
   (transpose-lines 1)
   (forward-line -2)
   (indent-according-to-mode))
 
 (defun move-line-down ()
-  "Move down the current line."
+  "Move the current line down by one line.
+This function transposes the current line with the line below it.
+It maintains the indentation level of the moved line."
   (interactive)
   (forward-line 1)
   (transpose-lines 1)
@@ -18,14 +22,12 @@
   (indent-according-to-mode))
 
 (defun smarter-move-beginning-of-line (arg)
-  "Move point back to indentation of beginning of line.
+  "Move point to the first non-whitespace character on the line.
+If point is already at that position, move to the beginning of the line.
+This function toggles between the first non-whitespace character
+and the beginning of the line.
 
-Move point to the first non-whitespace character on this line.
-If point is already there, move to the beginning of the line.
-Effectively toggle between the first non-whitespace character and
-the beginning of the line.
-
-If ARG is not nil or 1, move forward ARG - 1 lines first.  If
+With prefix argument ARG, move forward ARG - 1 lines first. If
 point reaches the beginning or end of the buffer, stop there."
   (interactive "^p")
   (setq arg (or arg 1))
@@ -41,9 +43,10 @@ point reaches the beginning or end of the buffer, stop there."
       (move-beginning-of-line 1))))
 
 (defun duplicate-line-or-region (&optional n)
-  "Duplicate current line, or region if active.
-    With argument N, make N copies.
-    With negative N, comment out original line and use the absolute value."
+  "Duplicate the current line or active region.
+If a region is active, duplicate the region. Otherwise, duplicate the current line.
+With prefix argument N, make N copies of the line or region.
+If N is negative, comment out the original line and use the absolute value of N."
   (interactive "*p")
   (let ((use-region (use-region-p)))
     (save-excursion
