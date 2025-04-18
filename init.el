@@ -2,6 +2,10 @@
 ;;; Commentary:
 ;;; Code:
 
+;;; =====================================================================
+;;; Basic Setup and Package Management
+;;; =====================================================================
+
 ;; Native compilation support - Emacs 30 has improved native compilation on macOS
 ;; This workaround is likely not needed for Emacs 30 but keeping modified version
 ;; to avoid potential issues. Remove if native compilation works without it.
@@ -51,12 +55,15 @@
 ;; Enable server for opening file/folder from emacsclient
 (server-start)
 
+;;; =====================================================================
+;;; General Emacs Settings
+;;; =====================================================================
+
 ;; don't display startup message
 (setq inhibit-startup-message t)
 
 ;; remove text from titlebar
 (setq frame-title-format nil)
-
 
 ;; no toolbar
 (tool-bar-mode -1)
@@ -85,6 +92,7 @@
 ;; Make yes-or-no questions answerable with 'y' or 'n'
 (setq use-short-answers t)  ;; Preferred in Emacs 28+ over fset yes-or-no-p
 
+;; macOS specific key bindings
 (setq mac-command-modifier 'super)
 (setq mac-option-modifier 'meta)
 
@@ -98,9 +106,9 @@
  ("s-v" . yank)
  ("s-a" . mark-whole-buffer))
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;; Terminal Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;
-
+;;; =====================================================================
+;;; Terminal Configuration
+;;; =====================================================================
 
 (defun is-in-terminal()
   "Will let you know if you are in a terminal session."
@@ -118,79 +126,105 @@
  (global-set-key [mouse-4] 'scroll-down-line)
  (global-set-key [mouse-5] 'scroll-up-line))
 
-
 ;; turn off scroll bar
 (if (display-graphic-p) (scroll-bar-mode -1))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Packages ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; =====================================================================
+;;; UI/UX Enhancements
+;;; =====================================================================
 
-(use-package comment-dwim-2
-  :bind
-  ("s-/" . comment-dwim-2))
-
-(use-package expand-region
-  :bind
-  ("C-@" . er/expand-region))
-
-(use-package exec-path-from-shell
-  :if (memq window-system '(mac ns x))
-  :config
-  (setq exec-path-from-shell-variables '("PATH" "GOPATH"))
-  (exec-path-from-shell-initialize))
-
-(use-package utilities
-  :load-path "site-lisp/utilities"
-  :bind
-  ("<M-down>" . move-line-down)
-  ("<M-up>" . move-line-up)
-  ("C-a" . smarter-move-beginning-of-line)
-  ("C-c d" . duplicate-line-or-region))
-
-(use-package vterm
+;; Beacon - Highlight cursor position when scrolling
+(use-package beacon
   :init
-  (progn
-    (add-to-list 'display-buffer-alist
-		 '((lambda(bufname _) (with-current-buffer bufname (equal major-mode 'vterm-mode)))
-		   (display-buffer-reuse-window display-buffer-at-bottom)
-		   ;;(display-buffer-reuse-window display-buffer-in-direction)
-		   ;;display-buffer-in-direction/direction/dedicated is added in emacs27
-		   ;;(direction . bottom)
-		   ;;(dedicated . t) ;dedicated is supported in emacs27
-		   (reusable-frames . visible)
-		   (window-height . 0.3)))))
+  (beacon-mode +1))
 
-(use-package vterm-toggle
+;; Doom themes - A collection of modern themes
+(use-package doom-themes
   :config
-  (setq vterm-toggle-fullscreen-p nil))
+  (setq doom-themes-enable-bold t
+	doom-themes-enable-italic t)
 
-(use-package use-package-chords
-  :config (key-chord-mode 1)
-  (key-chord-define-global "``" 'vterm-toggle))
+  (setq doom-themes-treemacs-theme "nerd-icons")
+  (doom-themes-treemacs-config)
+  (doom-themes-org-config)
 
-;; Use built-in tab-bar in Emacs 27+
+  ;; Set a dark titlebar
+  (set-frame-parameter nil 'ns-appearance 'dark)
+  (set-frame-parameter nil 'ns-transparent-titlebar nil))
+
+;; Doom modeline - A fancy and fast mode-line
+(use-package doom-modeline
+  :init (doom-modeline-mode)
+  :custom
+  (doom-modeline-icon t)
+  (doom-modeline-major-mode-icon t)
+  (doom-modeline-major-mode-color-icon t)
+  (doom-modeline-icon-scale-factor 1.0)
+  (doom-modeline-minor-modes nil))
+
+;; Solaire mode - Visually distinguish file-visiting windows from other types of windows
+(use-package solaire-mode
+  :config
+  (solaire-global-mode +1))
+
+;; Which-key - Display available keybindings in popup
+(use-package which-key
+  :config
+  (which-key-mode +1))
+
+;; Winner mode - Navigate window configurations with undo/redo
+(use-package winner
+  :ensure nil  ;; built-in
+  :init (winner-mode))
+
+;; Nerd Icons - Vector icons for Emacs
+(use-package nerd-icons)
+
+;; Nerd Icons Completion - Show icons in completion UI
+(use-package nerd-icons-completion
+  :after (marginalia nerd-icons)
+  :hook (marginalia-mode . nerd-icons-completion-marginalia-setup)
+  :init
+  (nerd-icons-completion-mode))
+
+;; Nerd Icons Dired - Show icons in dired mode
+(use-package nerd-icons-dired
+  :hook (dired-mode . nerd-icons-dired-mode))
+
+;; Tab Bar - Built-in tab bar in Emacs 27+
 (use-package tab-bar
   :ensure nil  ;; built-in
   :config
   (tab-bar-mode 1)
   (setq tab-bar-show 1))
 
-;; Replace ido with Vertico/Consult for better completion in Emacs 30
+;; Winum - Navigate windows using numbers
+(use-package winum)
+
+;;; =====================================================================
+;;; Navigation and Completion
+;;; =====================================================================
+
+;; Vertico - Vertical completion UI
 (use-package vertico
   :init
   (vertico-mode)
   :config
   (setq vertico-cycle t))
 
+;; Orderless - Flexible completion style
 (use-package orderless
   :init
   (setq completion-styles '(orderless basic)
         completion-category-defaults nil
         completion-category-overrides '((file (styles partial-completion)))))
 
+;; Marginalia - Annotations for minibuffer completions
 (use-package marginalia
   :init
   (marginalia-mode))
 
+;; Consult - Search and navigation commands
 (use-package consult
   :bind
   (("C-s" . consult-line)
@@ -199,124 +233,20 @@
    ("M-s" . consult-ripgrep)
    ("M-p" . consult-git-grep)))
 
+;; Embark - Context-aware actions
 (use-package embark
   :bind
   (("C-." . embark-act)
    ("C-;" . embark-dwim)
    ("C-h B" . embark-bindings)))
 
+;; Embark Consult - Integration between Embark and Consult
 (use-package embark-consult
   :after (embark consult)
   :hook
   (embark-collect-mode . consult-preview-at-point-mode))
 
-(use-package beacon
-  :init
-  (beacon-mode +1))
-
-(use-package browse-kill-ring
-  :bind
-  ("C-x C-y" . browse-kill-ring))
-
-(use-package deft
-  :bind
-  ("C-c n" . deft)
-  :config
-  (setq deft-extensions '("txt"))
-  (setq deft-directory "/Users/mranallo/Library/Mobile Documents/iCloud~co~noteplan~NotePlan/Documents/Notes/")
-  (setq deft-auto-save-interval 0.0))
-
-(use-package flyspell
-  :bind
-  ("<mouse-3>" . flyspell-correct-word)
-  :config
-  (progn
-    (add-hook 'text-mode-hook 'flyspell-mode)))
-
-(use-package go-mode)
-
-(use-package magit
-  :bind
-  ("<f5>" . magit-status)
-  ("<f6>" . magit-blame-addition)
-  :config
-  (progn
- (defadvice magit-status (around magit-fullscreen activate)
-  "Set Magit to run fullscreen."
-  (window-configuration-to-register :magit-fullscreen)
-  ad-do-it
-  (delete-other-windows)))
-  
-(defun magit-quit-session ()
-  "Restore the previous window configuration and kill the magit buffer."
-  (interactive)
-  (kill-buffer)
-  (jump-to-register :magit-fullscreen)))
-
-(use-package persistent-scratch
-  :config
-  (persistent-scratch-setup-default))
-
-;; Popwin
-(use-package popwin
-  :config
-  (progn
-    (push "*Compile-Log*" popwin:special-display-config)
-    (push "*compilation*" popwin:special-display-config)
-    (popwin-mode 1))
-  :bind-keymap
-  ("C-z" . popwin:keymap))
-
-(use-package hydra)
-
-;; Removed ivy/swiper/counsel in favor of Vertico/Consult above
-
-(use-package deadgrep
-  :bind ("<f7>" . deadgrep))
-
-(use-package flycheck
-  :defer t
-  :init (global-flycheck-mode))
-
-;; Define custom CloudFormation linter once Flycheck is loaded
-(with-eval-after-load 'flycheck
-  (flycheck-define-checker cfn-lint
-    "A CloudFormation linter using cfn-python-lint.
-See URL 'https://github.com/aws-cloudformation/cfn-lint'."
-    :command ("cfn-lint" "-f" "parseable" source)
-    :error-patterns
-    ((warning line-start (file-name) ":" line ":" column
-              ":" (one-or-more digit) ":" (one-or-more digit) ":"
-              (id "W" (one-or-more digit)) ":" (message) line-end)
-     (error line-start (file-name) ":" line ":" column
-            ":" (one-or-more digit) ":" (one-or-more digit) ":"
-            (id "E" (one-or-more digit)) ":" (message) line-end))
-    :modes cfn-mode)
-  (add-to-list 'flycheck-checkers 'cfn-lint))
-
-(use-package flycheck-pos-tip
-  :defer t
-  :config
-  (with-eval-after-load 'flycheck (flycheck-pos-tip-mode)))
-
-;; Using built-in completion with Vertico instead of smex
-(use-package whitespace-cleanup-mode
-  :init
-  (progn
-    (global-whitespace-cleanup-mode t)))
-
-(use-package nerd-icons)
-
-(use-package nerd-icons-completion
-  :after (marginalia nerd-icons)
-  :hook (marginalia-mode . nerd-icons-completion-marginalia-setup)
-  :init
-  (nerd-icons-completion-mode))
-
-(use-package yaml-pro)
-
-(use-package winum)
-
+;; Treemacs - Tree layout file explorer
 (use-package treemacs
   :defer t
   :bind (("s-\\" . treemacs))  ;; Command-\\ to toggle file tree
@@ -392,80 +322,112 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
   (:map global-map
 	("M-0"       . treemacs-select-window)
 	("C-x t 1"   . treemacs-delete-other-windows)
-	("C-x t t"   . treemacs)
+	("C-x t t"   . treemacs-toggle)
 	("C-\\"      . treemacs)
 	("C-x t d"   . treemacs-select-directory)
 	("C-x t B"   . treemacs-bookmark)
 	("C-x t C-t" . treemacs-find-file)
 	("C-x t M-t" . treemacs-find-tag)))
 
+;; Treemacs Projectile - Integration between Treemacs and Projectile
 (use-package treemacs-projectile
   :after (treemacs projectile))
 
+;; Treemacs Icons Dired - Show treemacs icons in dired
 (use-package treemacs-icons-dired
   :hook (dired-mode . treemacs-icons-dired-enable-once))
 
+;; Treemacs Magit - Integration between Treemacs and Magit
 (use-package treemacs-magit
   :after (treemacs magit))
 
+;; Treemacs Persp - Integration between Treemacs and Perspective
 (use-package treemacs-persp
   :after (treemacs persp-mode)
   :config (treemacs-set-scope-type 'Perspectives))
 
+;; Treemacs Tab Bar - Integration between Treemacs and Tab Bar
 (use-package treemacs-tab-bar
   :after (treemacs)
   :config (treemacs-set-scope-type 'Tabs))
 
-(use-package doom-themes
+;; Treemacs Nerd Icons - Use nerd icons in Treemacs
+(use-package treemacs-nerd-icons
+  :after (treemacs nerd-icons)
   :config
-  (setq doom-themes-enable-bold t
-	doom-themes-enable-italic t)
+  ;; Load the nerd-icons theme for Treemacs after Treemacs and nerd-icons are available
+  (treemacs-load-theme "nerd-icons"))
 
-  (setq doom-themes-treemacs-theme "nerd-icons")
-  (doom-themes-treemacs-config)
-  (doom-themes-org-config)
+;;; =====================================================================
+;;; Text Editing and Formatting
+;;; =====================================================================
 
-  ;; Set a dark titlebar
-  (set-frame-parameter nil 'ns-appearance 'dark)
-  (set-frame-parameter nil 'ns-transparent-titlebar nil))
+;; Comment-dwim-2 - Enhanced commenting commands
+(use-package comment-dwim-2
+  :bind
+  ("s-/" . comment-dwim-2))
 
-(use-package doom-modeline
-  :init (doom-modeline-mode)
-  :custom
-  (doom-modeline-icon t)
-  (doom-modeline-major-mode-icon t)
-  (doom-modeline-major-mode-color-icon t)
-  (doom-modeline-icon-scale-factor 1.0)
-  (doom-modeline-minor-modes nil))
+;; Expand-region - Increase selected region by semantic units
+(use-package expand-region
+  :bind
+  ("C-@" . er/expand-region))
 
-(use-package solaire-mode
-  :config
-  (solaire-global-mode +1))
+;; Utilities - Custom utility functions
+(use-package utilities
+  :load-path "site-lisp/utilities"
+  :bind
+  ("<M-down>" . move-line-down)
+  ("<M-up>" . move-line-up)
+  ("C-a" . smarter-move-beginning-of-line)
+  ("C-c d" . duplicate-line-or-region))
 
-;; Use built-in undo-redo functionality from Emacs 28+
+;; Whitespace-cleanup-mode - Automatically clean whitespace
+(use-package whitespace-cleanup-mode
+  :init
+  (progn
+    (global-whitespace-cleanup-mode t)))
+
+;; Undo-fu - Enhanced undo/redo functionality
 (use-package undo-fu
   :bind
   ("s-z" . undo-fu-only-undo)
   ("s-Z" . undo-fu-only-redo))
 
+;; Simpleclip - Simplified clipboard handling
 (use-package simpleclip
   :bind
   ("s-c" . simpleclip-copy)
   ("s-x" . simpleclip-cut)
   ("s-v" . simpleclip-paste))
 
-(use-package which-key
+;; Browse-kill-ring - Browse and insert items from kill ring
+(use-package browse-kill-ring
+  :bind
+  ("C-x C-y" . browse-kill-ring))
+
+;; Flyspell - Spell checking
+(use-package flyspell
+  :bind
+  ("<mouse-3>" . flyspell-correct-word)
   :config
-  (which-key-mode +1))
+  (progn
+    (add-hook 'text-mode-hook 'flyspell-mode)))
 
-(use-package winner
-  :ensure nil  ;; built-in
-  :init (winner-mode))
+;; Persistent-scratch - Save scratch buffer between sessions
+(use-package persistent-scratch
+  :config
+  (persistent-scratch-setup-default))
 
-(use-package yaml-mode
-  :hook (yaml-mode . display-line-numbers-mode))
+;; Deft - Quick note taking and searching
+(use-package deft
+  :bind
+  ("C-c n" . deft)
+  :config
+  (setq deft-extensions '("txt"))
+  (setq deft-directory "/Users/mranallo/Library/Mobile Documents/iCloud~co~noteplan~NotePlan/Documents/Notes/")
+  (setq deft-auto-save-interval 0.0))
 
-;; Using built-in ligature support in Emacs 29+
+;; Ligature - Support for programming ligatures
 (when (fboundp 'global-ligature-mode)
   (use-package ligature
     :config
@@ -491,7 +453,60 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
     ;; Enables ligature checks globally in all buffers
     (global-ligature-mode t)))
 
-;; Use the new built-in tree-sitter support in Emacs 29+
+;;; =====================================================================
+;;; Development Tools
+;;; =====================================================================
+
+;; Exec-path-from-shell - Ensure environment variables in Emacs match the shell
+(use-package exec-path-from-shell
+  :if (memq window-system '(mac ns x))
+  :config
+  (setq exec-path-from-shell-variables '("PATH" "GOPATH"))
+  (exec-path-from-shell-initialize))
+
+;; Flycheck - Syntax checking
+(use-package flycheck
+  :defer t
+  :init (global-flycheck-mode))
+
+;; Flycheck-pos-tip - Show flycheck errors in tooltip
+(use-package flycheck-pos-tip
+  :defer t
+  :config
+  (with-eval-after-load 'flycheck (flycheck-pos-tip-mode)))
+
+;; Define custom CloudFormation linter once Flycheck is loaded
+(with-eval-after-load 'flycheck
+  (flycheck-define-checker cfn-lint
+    "A CloudFormation linter using cfn-python-lint.
+See URL 'https://github.com/aws-cloudformation/cfn-lint'."
+    :command ("cfn-lint" "-f" "parseable" source)
+    :error-patterns
+    ((warning line-start (file-name) ":" line ":" column
+              ":" (one-or-more digit) ":" (one-or-more digit) ":"
+              (id "W" (one-or-more digit)) ":" (message) line-end)
+     (error line-start (file-name) ":" line ":" column
+            ":" (one-or-more digit) ":" (one-or-more digit) ":"
+            (id "E" (one-or-more digit)) ":" (message) line-end))
+    :modes cfn-mode)
+  (add-to-list 'flycheck-checkers 'cfn-lint))
+
+;; LSP Mode - Language Server Protocol support
+(use-package lsp-mode
+  :hook (
+	 (go-mode . lsp)
+	 (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp lsp-deferred)
+
+;; LSP UI - UI enhancements for LSP Mode
+(use-package lsp-ui
+  :commands lsp-ui-mode)
+
+;; LSP Treemacs - Integration between LSP and Treemacs
+(use-package lsp-treemacs
+  :commands lsp-treemacs-errors-list)
+
+;; Tree-sitter - Incremental parsing system
 (when (fboundp 'global-tree-sitter-mode)
   (use-package tree-sitter
     :ensure nil  ;; built-in
@@ -505,52 +520,112 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
     :config
     (global-tree-sitter-mode)))
 
-(use-package lsp-mode
-  :hook (
-	 (go-mode . lsp)
-	 (lsp-mode . lsp-enable-which-key-integration))
-  :commands lsp lsp-deferred)
+;; Hydra - Make Emacs bindings that stick around
+(use-package hydra)
 
-(use-package lsp-ui
-  :commands lsp-ui-mode)
+;; Deadgrep - Fast, modern text search using ripgrep
+(use-package deadgrep
+  :bind ("<f7>" . deadgrep))
 
-;; Use consult instead of lsp-ivy
-(use-package lsp-treemacs
-  :commands lsp-treemacs-errors-list)
+;; ChatGPT Shell - Interface to ChatGPT
+(use-package chatgpt-shell
+  :custom
+  (chatgpt-shell-openai-key (getenv "OPENAI_API_KEY")))
 
-;; Removed company-box since we're using completion-preview-mode
+;;; =====================================================================
+;;; Version Control
+;;; =====================================================================
 
-;;;;;;;;;;;;;;;;;;;;;;;;;; Mode Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Magit - Git interface
+(use-package magit
+  :bind
+  ("<f5>" . magit-status)
+  ("<f6>" . magit-blame-addition)
+  :config
+  (progn
+ (defadvice magit-status (around magit-fullscreen activate)
+  "Set Magit to run fullscreen."
+  (window-configuration-to-register :magit-fullscreen)
+  ad-do-it
+  (delete-other-windows)))
+  
+(defun magit-quit-session ()
+  "Restore the previous window configuration and kill the magit buffer."
+  (interactive)
+  (kill-buffer)
+  (jump-to-register :magit-fullscreen)))
 
-;; cfn-mode
+;;; =====================================================================
+;;; Terminal and Shell
+;;; =====================================================================
+
+;; VTerm - Fully-featured terminal emulator
+(use-package vterm
+  :init
+  (progn
+    (add-to-list 'display-buffer-alist
+		 '((lambda(bufname _) (with-current-buffer bufname (equal major-mode 'vterm-mode)))
+		   (display-buffer-reuse-window display-buffer-at-bottom)
+		   ;;(display-buffer-reuse-window display-buffer-in-direction)
+		   ;;display-buffer-in-direction/direction/dedicated is added in emacs27
+		   ;;(direction . bottom)
+		   ;;(dedicated . t) ;dedicated is supported in emacs27
+		   (reusable-frames . visible)
+		   (window-height . 0.3)))))
+
+;; VTerm Toggle - Quickly toggle terminal window
+(use-package vterm-toggle
+  :config
+  (setq vterm-toggle-fullscreen-p nil))
+
+;; Use-package-chords - Key-chord integration for use-package
+(use-package use-package-chords
+  :config (key-chord-mode 1)
+  (key-chord-define-global "``" 'vterm-toggle))
+
+;;; =====================================================================
+;;; Window and Buffer Management
+;;; =====================================================================
+
+;; Popwin - Popup window manager
+(use-package popwin
+  :config
+  (progn
+    (push "*Compile-Log*" popwin:special-display-config)
+    (push "*compilation*" popwin:special-display-config)
+    (popwin-mode 1))
+  :bind-keymap
+  ("C-z" . popwin:keymap))
+
+;;; =====================================================================
+;;; Language-specific Modes
+;;; =====================================================================
+
+;; Go Mode - Major mode for Go programming language
+(use-package go-mode)
+
+;; YAML Mode - Major mode for YAML files
+(use-package yaml-mode
+  :hook (yaml-mode . display-line-numbers-mode))
+
+;; YAML Pro - Enhanced YAML editing
+(use-package yaml-pro)
+
+;; Dockerfile Mode - Major mode for Docker files
+(use-package dockerfile-mode)
+
+;; Docker Compose Mode - Major mode for docker-compose files
+(use-package docker-compose-mode)
+
+;; cfn-mode - CloudFormation template mode
 (define-derived-mode cfn-mode yaml-mode
   "Cloudformation"
   "Cloudformation template mode.")
 (add-to-list 'auto-mode-alist '("infrastructure/.*\\.yml$" . cfn-mode))
 
-
-(use-package dockerfile-mode)
-
-(use-package docker-compose-mode)
-
-(use-package chatgpt-shell
-  :custom
-  (chatgpt-shell-openai-key (getenv "OPENAI_API_KEY")))
-
-;; Copilot integration removed
-
-
-(use-package nerd-icons-dired
-  :hook (dired-mode . nerd-icons-dired-mode))
-
-(use-package treemacs-nerd-icons
-  :after (treemacs nerd-icons)
-  :config
-  ;; Load the nerd-icons theme for Treemacs after Treemacs and nerd-icons are available
-  (treemacs-load-theme "nerd-icons"))
-
-(use-package treemacs-magit
-  :after (treemacs magit))
+;;; =====================================================================
+;;; Custom Settings
+;;; =====================================================================
 
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 (when (file-exists-p custom-file)

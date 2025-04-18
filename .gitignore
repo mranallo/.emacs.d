@@ -31,3 +31,5 @@ recentf
 /eshell/
 /.cache/
 *.el#
+/.chatgpt-shell.el
+/projectile-bookmarks.eld
