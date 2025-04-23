@@ -469,6 +469,13 @@
 ;;; Development Tools
 ;;; =====================================================================
 
+;; MCP (Multiple Cursors Protocol) - Protocol for external editor communication
+(use-package mcp
+  :ensure t
+  :config
+  (mcp-server-mode 1)
+  (setq mcp-server-port 19630))  ;; Default port, can be changed
+
 ;; Exec-path-from-shell - Ensure environment variables in Emacs match the shell
 (use-package exec-path-from-shell
   :if (memq window-system '(mac ns x))

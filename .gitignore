@@ -25,11 +25,12 @@ transient/*
 .persistent-scratch
 recentf
 .lsp-session-v1
-/eln-cache/28.3-3049b6cb/chatgpt-shell-22647e0d-f84e72cd.eln
-/chatgpt/
 /eln-cache/
+/chatgpt/
 /eshell/
 /.cache/
 *.el#
 /.chatgpt-shell.el
 /projectile-bookmarks.eld
+.aider*
+/request/
