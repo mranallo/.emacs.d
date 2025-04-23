@@ -246,6 +246,18 @@
   :hook
   (embark-collect-mode . consult-preview-at-point-mode))
 
+;; Avy - Jump to visible text using a char-based decision tree
+(use-package avy
+  :bind
+  (("C-:" . avy-goto-char)
+   ("C-'" . avy-goto-char-2)
+   ("M-g g" . avy-goto-line)
+   ("M-g w" . avy-goto-word-1)
+   ("C-c C-j" . avy-resume))
+  :config
+  (setq avy-background t)
+  (setq avy-style 'at-full))
+
 ;; Treemacs - Tree layout file explorer
 (use-package treemacs
   :defer t
