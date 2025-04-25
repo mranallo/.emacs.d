@@ -553,7 +553,7 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
      (error line-start (file-name) ":" line ":" column
             ":" (one-or-more digit) ":" (one-or-more digit) ":"
             (id "E" (one-or-more digit)) ":" (message) line-end))
-    :modes cfn-mode)
+    :modes 'yaml-mode)
   (add-to-list 'flycheck-checkers 'cfn-lint))
 
 ;; LSP Mode - Language Server Protocol support
@@ -708,11 +708,8 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
 ;; Docker Compose Mode - Major mode for docker-compose files
 (use-package docker-compose-mode)
 
-;; cfn-mode - CloudFormation template mode
-(define-derived-mode cfn-mode yaml-mode
-  "Cloudformation"
-  "Cloudformation template mode.")
-(add-to-list 'auto-mode-alist '("infrastructure/.*\\.yml$" . cfn-mode))
+;; CloudFormation files - Using yaml-mode for CloudFormation templates
+(add-to-list 'auto-mode-alist '("infrastructure/.*\\.yml$" . yaml-mode))
 
 ;;; =====================================================================
 ;;; Custom Settings
