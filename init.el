@@ -18,6 +18,24 @@
 	     "/opt/homebrew/opt/gcc/lib/gcc/current/gcc/aarch64-apple-darwin24/14")
 	   ":")))
 
+;; straight.el package manager bootstrap
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 6))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+;; Configure straight.el to use use-package
+(straight-use-package 'use-package)
+(setq straight-use-package-by-default nil)  ;; Don't use straight for all packages by default
+
 ;; Package management setup
 ;; Prevent package.el from auto-initializing; we handle it manually
 (setq package-enable-at-startup nil)
@@ -578,6 +596,15 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
 (use-package chatgpt-shell
   :custom
   (chatgpt-shell-openai-key (getenv "OPENAI_API_KEY")))
+
+;; Claude Code - Emacs integration for Claude Code CLI
+(use-package claude-code
+  :straight (:type git :host github :repo "stevemolitor/claude-code.el" :branch "main"
+                   :files ("*.el" (:exclude "demo.gif")))
+  :bind-keymap
+  ("C-c c" . claude-code-command-map)
+  :config
+  (claude-code-mode))
 
 ;;; =====================================================================
 ;;; Version Control

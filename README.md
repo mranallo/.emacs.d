@@ -27,7 +27,7 @@ Everything is managed with [`use-package`](https://github.com/jwiegley/use-packa
 - **Project & File Navigation**: Treemacs with Nerd Icons, Winum, Projectile integration
 - **UI & Aesthetics**: Doom Themes, Doom Modeline, Solaire Mode, Ligatures, Nerd Icons
 - **Language Support**: LSP Mode + UI + Treemacs, Tree‑sitter, YAML, Go, Docker, CloudFormation
-- **Productivity Tools**: Magit, Flycheck, Deadgrep, VTerm + VTerm‑Toggle, ChatGPT Shell
+- **Productivity Tools**: Magit, Flycheck, Deadgrep, VTerm + VTerm‑Toggle, ChatGPT Shell, Claude Code
 - **Editing Enhancements**: Expand‑Region, Comment‑DWIM‑2, Duplicate Line, Whitespace Cleanup, Undo‑Fu, Simpleclip
 - **Core Tweaks**: Better `yes-or-no` answers, no backup files, server mode, macOS Super keybindings
 
@@ -70,6 +70,7 @@ Everything is managed with [`use-package`](https://github.com/jwiegley/use-packa
 - **Counsel** for `M-x` and `C-x C-f` (find-file)
 - **Consult/Embark** via `C-.`, `C-;`, `C-s`, `C-x b`, etc.
 - **VTerm** toggle with ```` (double backtick chord) or `C-\\`.
+- **Claude Code** via `C-c c` prefix (e.g., `C-c c c` to start, `C-c c t` to toggle)
 - **Magit** on `<f5>` (status), `<f6>` (blame)
 - **Treemacs** on `C-x t t`, `s-\\`, `M-0`, and other intuitive combos
 
