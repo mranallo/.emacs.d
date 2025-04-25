@@ -100,6 +100,8 @@
 (bind-keys*
  ("C-M-n" . forward-page)
  ("C-M-p" . backward-page)
+ ("C-x m" . execute-extended-command)  ;; Altern to M-x
+ ("C-x C-m" . execute-extended-command)  ;; Altern to M-x
  ;; macOS-style: Command for copy/cut/paste/select-all
  ("s-c" . kill-ring-save)
  ("s-x" . kill-region)
@@ -224,7 +226,40 @@
   :init
   (marginalia-mode))
 
-;; Consult - Search and navigation commands
+;; Save minibuffer history
+(use-package savehist
+  :ensure nil  ;; built-in
+  :init
+  (savehist-mode))
+
+;; Track recently opened files
+(use-package recentf
+  :ensure nil  ;; built-in
+  :init
+  (recentf-mode)
+  :config
+  (setq recentf-max-saved-items 50)
+  (setq recentf-max-menu-items 15))
+
+
+;; Ivy, Counsel and Swiper - Completion framework and commands
+(use-package ivy
+  :config
+  (ivy-mode 1)
+  (setq ivy-use-virtual-buffers t)
+  (setq ivy-count-format "(%d/%d) ")
+  (setq ivy-height 15)
+  (setq ivy-initial-inputs-alist nil)
+  (setq ivy-re-builders-alist
+        '((t . ivy--regex-plus))))
+
+;; Counsel - Enhanced commands with Ivy completion
+(use-package counsel
+  :bind
+  (("M-x" . counsel-M-x)
+   ("C-x C-f" . counsel-find-file)))
+
+;; Consult - Additional search and navigation commands
 (use-package consult
   :bind
   (("C-s" . consult-line)
@@ -469,13 +504,6 @@
 ;;; Development Tools
 ;;; =====================================================================
 
-;; MCP (Multiple Cursors Protocol) - Protocol for external editor communication
-(use-package mcp
-  :ensure t
-  :config
-  (mcp-server-mode 1)
-  (setq mcp-server-port 19630))  ;; Default port, can be changed
-
 ;; Exec-path-from-shell - Ensure environment variables in Emacs match the shell
 (use-package exec-path-from-shell
   :if (memq window-system '(mac ns x))
@@ -590,7 +618,23 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
 		   ;;(direction . bottom)
 		   ;;(dedicated . t) ;dedicated is supported in emacs27
 		   (reusable-frames . visible)
-		   (window-height . 0.3)))))
+		   (window-height . 0.3))))
+  :config
+  (setq vterm-buffer-name-string "vterm %s")
+  ;; Set terminal environment variable to improve compatibility
+  ;; Use a more modern terminal type that better supports Unicode and colors
+  (setq vterm-term-environment-variable "xterm-direct")
+  
+  ;; Fix font configuration for vterm
+  (custom-set-faces
+   '(vterm-color-default ((t (:inherit default :family "DejaVu Sans Mono")))))
+  
+  ;; Comprehensive vterm setup for proper Unicode and box drawing
+  (add-hook 'vterm-mode-hook
+            (lambda ()
+              ;; Better box drawing with specific font and no line spacing
+              (setq-local line-spacing 0)
+              )))
 
 ;; VTerm Toggle - Quickly toggle terminal window
 (use-package vterm-toggle
@@ -611,7 +655,8 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
   :config
   (progn
     (push "*Compile-Log*" popwin:special-display-config)
-    (push "*compilation*" popwin:special-display-config)
+    (setq popwin:close-popup-window-timer-interval 0.5)
+    (setq popwin:popup-window-position 'bottom)
     (popwin-mode 1))
   :bind-keymap
   ("C-z" . popwin:keymap))
