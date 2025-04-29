@@ -266,6 +266,10 @@
 (use-package corfu
   :ensure t
   :init
+  ;; Declare Corfu functions to silence compiler warnings
+  (declare-function corfu-next "corfu")
+  (declare-function corfu-previous "corfu")
+  
   (global-corfu-mode)
   :custom
   (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous`
@@ -278,13 +282,21 @@
   (corfu-preselect-first t)           ;; Preselect first candidate
   :config
   ;; TAB-and-Go customizations
-  (define-key corfu-map (kbd "TAB") 'corfu-next)
-  (define-key corfu-map (kbd "S-TAB") 'corfu-previous))
+  (with-eval-after-load 'corfu
+    (define-key corfu-map (kbd "TAB") 'corfu-next)
+    (define-key corfu-map (kbd "S-TAB") 'corfu-previous)))
 
 ;; Cape - Completion At Point Extensions
 (use-package cape
   :ensure t
   :init
+  ;; Declare Cape functions to silence compiler warnings
+  (declare-function cape-file "cape")
+  (declare-function cape-dabbrev "cape")
+  (declare-function cape-keyword "cape")
+  (declare-function cape-wrap-silent "cape")
+  (declare-function cape-wrap-noninteractive "cape")
+  
   ;; Add useful completion sources
   (add-to-list 'completion-at-point-functions #'cape-file)
   (add-to-list 'completion-at-point-functions #'cape-dabbrev)
