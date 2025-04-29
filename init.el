@@ -261,7 +261,7 @@
 
 ;; Corfu - In-buffer completion UI
 (use-package corfu
-  :straight t
+  :ensure t
   :init
   (global-corfu-mode)
   :custom
@@ -280,7 +280,7 @@
 
 ;; Cape - Completion At Point Extensions
 (use-package cape
-  :straight t
+  :ensure t
   :init
   ;; Add useful completion sources
   (add-to-list 'completion-at-point-functions #'cape-file)
