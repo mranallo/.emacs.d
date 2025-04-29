@@ -6,17 +6,9 @@
 ;;; Basic Setup and Package Management
 ;;; =====================================================================
 
-;; Native compilation support - Emacs 30 has improved native compilation on macOS
-;; This workaround is likely not needed for Emacs 30 but keeping modified version
-;; to avoid potential issues. Remove if native compilation works without it.
-(when (and (fboundp 'native-comp-available-p)
-           (native-comp-available-p))
-  (setenv "LIBRARY_PATH"
-	  (string-join
-	   '("/opt/homebrew/opt/gcc/lib/gcc/current"
-	     "/opt/homebrew/opt/libgccjit/lib/gcc/current"
-	     "/opt/homebrew/opt/gcc/lib/gcc/current/gcc/aarch64-apple-darwin24/14")
-	   ":")))
+;; Set a dedicated native-comp cache directory
+(when (featurep 'native-compile)
+  (add-to-list 'native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory)))
 
 ;; Declare external function to silence compiler warning
 (declare-function straight-use-package "straight" (package &optional no-clone no-build))
@@ -72,6 +64,15 @@
       use-package-expand-minimally t
       use-package-minimum-reported-time 0.2)
 
+;; Use GCMH for better GC management
+(use-package gcmh
+  :ensure t
+  :init (gcmh-mode 1)
+  :config
+  (setq gcmh-idle-delay 5
+        gcmh-high-cons-threshold (* 16 1024 1024)  ;; 16MB
+        gcmh-verbose nil))
+
 ;; Byte compile lisp
 (add-hook 'emacs-lisp-mode-hook
           (lambda ()
@@ -96,14 +97,53 @@
 ;; no menu-bar-mode
 ;; (menu-bar-mode -1)
 
-;; disable backup files (foo~)
-(setq backup-inhibited t)
+;; Better backup strategy
+(setq backup-directory-alist '(("." . "~/.emacs.d/backups"))
+      auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t))
+      backup-by-copying t
+      delete-old-versions t
+      kept-new-versions 6
+      kept-old-versions 2
+      version-control t)
 
 ;; delete files by moving them to the OS X trash
 (setq delete-by-moving-to-trash t)
 
-;; use default Mac browser
-(setq browse-url-browser-function 'browse-url-default-macosx-browser)
+;; Smooth pixel-based scrolling
+(pixel-scroll-precision-mode 1)
+(setq pixel-scroll-precision-use-momentum t)
+
+;; Enhanced completions UI
+(setq completions-format 'one-column
+      completions-detailed t
+      completions-max-height 20
+      completions-highlight-face 'completions-highlight)
+
+;; Enable repeat-mode for better command repetition
+(repeat-mode 1)
+
+;; Use the built-in undo system with better defaults
+(setq undo-limit 67108864) ; 64mb
+(setq undo-strong-limit 100663296) ; 96mb
+(setq undo-outer-limit 1006632960) ; 960mb
+
+;; Smooth pixel-based scrolling
+(pixel-scroll-precision-mode 1)
+(setq pixel-scroll-precision-use-momentum t)
+
+;; Enhanced completions UI
+(setq completions-format 'one-column
+      completions-detailed t
+      completions-max-height 20
+      completions-highlight-face 'completions-highlight)
+
+;; Enable repeat-mode for better command repetition
+(repeat-mode 1)
+
+;; Use the built-in undo system with better defaults
+(setq undo-limit 67108864) ; 64mb
+(setq undo-strong-limit 100663296) ; 96mb
+(setq undo-outer-limit 1006632960) ; 960mb
 
 ;; use line numbers in programming modes
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
@@ -213,8 +253,13 @@ Otherwise returns nil."
   :ensure nil  ;; built-in
   :init (winner-mode))
 
-;; Nerd Icons - Vector icons for Emacs
-(use-package nerd-icons)
+;; Standardize on nerd-icons
+(use-package nerd-icons
+  :config
+  ;; If you're missing icons, uncomment this to install them
+  ;; (unless (file-exists-p (expand-file-name "icons" nerd-icons-data-dir))
+  ;;   (nerd-icons-install-fonts t))
+  )
 
 ;; Nerd Icons Completion - Show icons in completion UI
 (use-package nerd-icons-completion
@@ -230,9 +275,20 @@ Otherwise returns nil."
 ;; Tab Bar - Built-in tab bar in Emacs 27+
 (use-package tab-bar
   :ensure nil  ;; built-in
+  :custom
+  (tab-bar-show 1)
+  (tab-bar-close-button-show nil)
+  (tab-bar-new-button-show nil)
+  (tab-bar-new-tab-choice "*scratch*")
+  (tab-bar-tab-hints t)
+  (tab-bar-format '(tab-bar-format-tabs tab-bar-separator))
   :config
   (tab-bar-mode 1)
-  (setq tab-bar-show 1))
+  :bind
+  (("s-{" . tab-bar-switch-to-prev-tab)
+   ("s-}" . tab-bar-switch-to-next-tab)
+   ("s-t" . tab-bar-new-tab)
+   ("s-w" . tab-bar-close-tab)))
 
 ;; Winum - Navigate windows using numbers
 (use-package winum)
@@ -241,12 +297,13 @@ Otherwise returns nil."
 ;;; Navigation and Completion
 ;;; =====================================================================
 
-;; Vertico - Vertical completion UI
+;; Fully commit to Vertico ecosystem (recommended for Emacs 30)
 (use-package vertico
-  :init
-  (vertico-mode)
-  :config
-  (setq vertico-cycle t))
+  :init (vertico-mode)
+  :custom
+  (vertico-cycle t)
+  (vertico-count 15)
+  (vertico-resize t))
 
 ;; Orderless - Flexible completion style
 (use-package orderless
@@ -628,22 +685,24 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
     :modes 'yaml-mode)
   (add-to-list 'flycheck-checkers 'cfn-lint))
 
-;; LSP Mode - Language Server Protocol support
-(use-package lsp-mode
-  :hook (
-	 (go-mode . lsp)
-	 (lsp-mode . lsp-enable-which-key-integration))
-  :commands lsp lsp-deferred)
+;; Replace LSP-mode with built-in Eglot
+(use-package eglot
+  :ensure nil  ;; built-in
+  :hook
+  ((go-mode go-ts-mode) . eglot-ensure)
+  ((yaml-mode yaml-ts-mode) . eglot-ensure)
+  ((dockerfile-mode dockerfile-ts-mode) . eglot-ensure)
+  :config
+  (setq eglot-autoshutdown t)
+  (setq eglot-sync-connect nil)
+  (setq eglot-events-buffer-size 0)
+  (setq eglot-extend-to-xref t)
+  
+  ;; Add CloudFormation LSP server if you use it
+  (add-to-list 'eglot-server-programs
+               '((yaml-mode yaml-ts-mode) . ("cfn-lsp-extra"))))
 
-;; LSP UI - UI enhancements for LSP Mode
-(use-package lsp-ui
-  :commands lsp-ui-mode)
-
-;; LSP Treemacs - Integration between LSP and Treemacs
-(use-package lsp-treemacs
-  :commands lsp-treemacs-errors-list)
-
-;; Tree-sitter - Incremental parsing system for Emacs 30
+;; Enhanced tree-sitter configuration
 (use-package treesit
   :ensure nil  ;; built-in
   :config
@@ -682,10 +741,42 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
           (css-mode . css-ts-mode)
           (python-mode . python-ts-mode)
           (go-mode . go-ts-mode)
-          (dockerfile-mode . dockerfile-ts-mode))))
+          (dockerfile-mode . dockerfile-ts-mode)))
+  
+  ;; Configure tree-sitter indentation for specific modes
+  (setq treesit-font-lock-level 4)
+  
+  ;; Add language-specific configurations
+  (add-hook 'yaml-ts-mode-hook
+            (lambda ()
+              (setq-local indent-tabs-mode nil
+                          tab-width 2))))
 
-;; Hydra - Make Emacs bindings that stick around
-(use-package hydra)
+;; Use Project.el instead of Projectile
+(use-package project
+  :ensure nil  ;; built-in
+  :config
+  (setq project-switch-commands
+        '((project-find-file "Find file")
+          (project-find-regexp "Find regexp")
+          (project-dired "Dired")
+          (project-eshell "Eshell")
+          (project-shell "Shell")
+          (project-vterm "VTerm")))
+  :bind-keymap
+  ("C-c p" . project-prefix-map)
+  :bind
+  (:map project-prefix-map
+        ("v" . project-vterm)))
+
+;; Add VTerm to project.el
+(defun project-vterm ()
+  "Start vterm in the current project's root directory."
+  (interactive)
+  (defvar vterm-buffer-name)
+  (let* ((default-directory (project-root (project-current t)))
+         (vterm-buffer-name (project-prefixed-buffer-name "vterm")))
+    (vterm)))
 
 ;; Deadgrep - Fast, modern text search using ripgrep
 (use-package deadgrep
