@@ -710,6 +710,12 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
 ;;; =====================================================================
 
 ;; Magit - Git interface
+(defun magit-status-fullscreen (orig-fun &rest args)
+  "Advice to make magit-status run fullscreen."
+  (window-configuration-to-register :magit-fullscreen)
+  (apply orig-fun args)
+  (delete-other-windows))
+
 (use-package magit
   :bind
   ("<f5>" . magit-status)
@@ -717,12 +723,6 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
   :config
   (progn
    ;; Make magit status run fullscreen
-   (defun magit-status-fullscreen (orig-fun &rest args)
-     "Advice to make magit-status run fullscreen."
-     (window-configuration-to-register :magit-fullscreen)
-     (apply orig-fun args)
-     (delete-other-windows))
-   
    (advice-add 'magit-status :around #'magit-status-fullscreen)
   
    (defun magit-quit-session ()
