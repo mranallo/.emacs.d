@@ -388,9 +388,10 @@ Otherwise returns nil."
   (("C-s" . consult-line)
    ("C-x b" . consult-buffer)
    ("M-x" . consult-mode-command)
-   ("C-x C-f" . consult-find-file)
+   ("C-x C-f" . find-file)  ;; Use standard find-file or consider consult-find
    ("M-y" . consult-yank-pop)
-   ("M-s" . consult-ripgrep)
+   ("M-s f" . consult-find)  ;; Alternative file finding command
+   ("M-s r" . consult-ripgrep)
    ("M-p" . consult-git-grep)))
 
 ;; Embark - Context-aware actions
