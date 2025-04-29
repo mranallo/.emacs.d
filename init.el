@@ -18,6 +18,9 @@
 	     "/opt/homebrew/opt/gcc/lib/gcc/current/gcc/aarch64-apple-darwin24/14")
 	   ":")))
 
+;; Declare external function to silence compiler warning
+(declare-function straight-use-package "straight" (package &optional no-clone no-build))
+
 ;; straight.el package manager bootstrap
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -285,13 +288,16 @@
   ;; Add useful completion sources
   (add-to-list 'completion-at-point-functions #'cape-file)
   (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-  (add-to-list 'completion-at-point-functions #'cape-keyword)
   :config
-  ;; Silence the pcomplete capf, no errors or messages!
-  (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-silent)
-  
-  ;; Ensure case-sensitivity for file completion
-  (advice-add 'comint-completion-at-point :around #'cape-wrap-noninteractive))
+  (with-eval-after-load 'cape
+    ;; Add cape-keyword after cape is loaded
+    (add-to-list 'completion-at-point-functions #'cape-keyword)
+    
+    ;; Silence the pcomplete capf, no errors or messages!
+    (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-silent)
+    
+    ;; Ensure case-sensitivity for file completion
+    (advice-add 'comint-completion-at-point :around #'cape-wrap-noninteractive)))
 
 
 ;; Ivy, Counsel and Swiper - Completion framework and commands
