@@ -1,35 +1,47 @@
-<!-- README for Emacs configuration repository -->
-
 # Emacs Configuration
 
-> A modular, performant, and modern Emacs setup designed to leverage Emacs 29/30 features, native compilation, and community-driven packages for an enhanced editing experience.
+> A modular, performant, and modern Emacs setup designed to leverage Emacs 30 features, native compilation, and community-driven packages for an enhanced editing experience.
 
 ## Overview
 
-This repository contains my personal Emacs configuration, split across two files:
+This repository contains my personal Emacs configuration, split across three files:
 
-- `early-init.el`: Startup optimizations (Garbage Collection tuning, package loading control).
+- `early-init.el`: Startup optimizations (Garbage Collection tuning, UI element disabling, native compilation settings).
 - `init.el`: Core configuration (package management, UI tweaks, keybindings, modes).
+- `custom.el`: User interface customizations and theme settings.
 
 Everything is managed with [`use-package`](https://github.com/jwiegley/use-package), ensuring clean, lazy-loaded declarations.
 
 ## Philosophy
 
-- **Performance first**: Increase GC threshold during startup, disable unwanted defaults, enable native compilation on supported systems.
-- **Built‑in over external**: Prefer Emacs’s shipped features (Tab Bar, Tree‑sitter, Undo/Redo, Ligatures) when possible.
+- **Performance first**: Optimize GC with GCMH, disable unwanted defaults, leverage native compilation with dedicated cache.
+- **Built‑in over external**: Prefer Emacs 30's built-in features (Tab Bar, Tree‑sitter, Eglot, Project.el, Pixel Scrolling).
 - **Modularity**: Group related settings and packages logically; keep custom files separate (`custom.el`).
 - **Environment‑driven secrets**: Read sensitive keys (e.g. `OPENAI_API_KEY`) from environment variables, not hard‑coded.
 - **Minimal boilerplate**: Use sensible defaults and rely on community packages for specialized workflows.
 
 ## Highlights
 
-- **Completion**: Ivy, Counsel (for M-x and file finding), Consult, Marginalia, Embark, Corfu (in-buffer completion), Cape
-- **Project & File Navigation**: Treemacs with Nerd Icons, Winum, Projectile integration
-- **UI & Aesthetics**: Doom Themes, Doom Modeline, Solaire Mode, Ligatures, Nerd Icons
-- **Language Support**: LSP Mode + UI + Treemacs, Native Tree‑sitter (Emacs 30), YAML, Go, Docker, CloudFormation
+- **Completion**: Vertico, Orderless, Marginalia, Embark, Corfu (in-buffer completion), Cape
+- **Project & File Navigation**: Project.el, Treemacs with Nerd Icons, Winum
+- **UI & Aesthetics**: Doom Themes, Doom Modeline, Solaire Mode, Ligatures, Nerd Icons, Pixel Scrolling
+- **Language Support**: Eglot (built-in LSP client), Native Tree‑sitter (Emacs 30), YAML, Go, Docker, CloudFormation
 - **Productivity Tools**: Magit, Flycheck, Deadgrep, VTerm + VTerm‑Toggle, ChatGPT Shell, Claude Code
-- **Editing Enhancements**: Expand‑Region, Comment‑DWIM‑2, Duplicate Line, Whitespace Cleanup, Undo‑Fu, Simpleclip
-- **Core Tweaks**: Better `yes-or-no` answers, no backup files, server mode, macOS Super keybindings
+- **Editing Enhancements**: Expand‑Region, Comment‑DWIM‑2, Duplicate Line, Whitespace Cleanup, Enhanced Undo, Simpleclip
+- **Core Tweaks**: Better `yes-or-no` answers, robust backup strategy, server mode, macOS Super keybindings
+
+## Emacs 30 Optimizations
+
+- **Native Compilation**: Dedicated ELN cache directory and optimized compilation settings
+- **Tree-sitter**: Enhanced language support with automatic grammar installation
+- **Eglot**: Built-in LSP client replacing external LSP-mode
+- **Project.el**: Built-in project management replacing Projectile
+- **Pixel Scrolling**: Smooth scrolling with momentum
+- **Enhanced Completions UI**: Improved minibuffer completion interface
+- **Tab Bar**: Customized with intuitive keybindings
+- **Repeat Mode**: Better command repetition
+- **Robust Backup Strategy**: Version-controlled backups instead of disabling them
+- **Memory Management**: GCMH for intelligent garbage collection
 
 ## Installation
 
@@ -49,15 +61,15 @@ Everything is managed with [`use-package`](https://github.com/jwiegley/use-packa
 
 ## Requirements
 
-- Emacs 29 or newer (30 recommended for improved native compilation support).
+- Emacs 30 for all features (some may work with Emacs 29).
 - Optional Homebrew packages on macOS for native compilation:
   - `gcc`, `libgccjit`
-- `git`, `ripgrep` for Consult/Deadgrep, and project searching.
+- `git`, `ripgrep` for searching and project management.
 
 ## Configuration
 
 - All custom settings are in `init.el`. Separate `custom.el` holds UI customization.
-- `early-init.el` tweaks GC and disables auto package loading.
+- `early-init.el` optimizes startup and configures native compilation.
 - To override or add settings:
   1. Edit `init.el` and add your `use-package` declarations.
   2. Restart Emacs or evaluate your buffer.
@@ -67,12 +79,14 @@ Everything is managed with [`use-package`](https://github.com/jwiegley/use-packa
 - **Super (⌘)** on macOS is mapped to the `Super` modifier:
   - `s-c`, `s-x`, `s-v` for Copy/Cut/Paste
   - `s-z` / `s-Z` for Undo/Redo
-- **Counsel** for `M-x` and `C-x C-f` (find-file)
-- **Consult/Embark** via `C-.`, `C-;`, `C-s`, `C-x b`, etc.
+  - `s-{`, `s-}` for tab navigation
+  - `s-t`, `s-w` for new tab and close tab
+- **Vertico/Consult/Embark** for enhanced minibuffer completion
 - **VTerm** toggle with ```` (double backtick chord) or `C-\\`.
 - **Claude Code** via `C-c c` prefix (e.g., `C-c c c` to start, `C-c c t` to toggle)
 - **Magit** on `<f5>` (status), `<f6>` (blame)
 - **Treemacs** on `C-x t t`, `s-\\`, `M-0`, and other intuitive combos
+- **Project.el** commands via `C-c p` prefix
 
 ## Customization Tips
 
