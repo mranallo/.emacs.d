@@ -382,28 +382,13 @@ Otherwise returns nil."
     (advice-add 'comint-completion-at-point :around #'cape-wrap-noninteractive)))
 
 
-;; Ivy, Counsel and Swiper - Completion framework and commands
-(use-package ivy
-  :config
-  (ivy-mode 1)
-  (setq ivy-use-virtual-buffers t)
-  (setq ivy-count-format "(%d/%d) ")
-  (setq ivy-height 15)
-  (setq ivy-initial-inputs-alist nil)
-  (setq ivy-re-builders-alist
-        '((t . ivy--regex-plus))))
-
-;; Counsel - Enhanced commands with Ivy completion
-(use-package counsel
-  :bind
-  (("M-x" . counsel-M-x)
-   ("C-x C-f" . counsel-find-file)))
-
 ;; Consult - Additional search and navigation commands
 (use-package consult
   :bind
   (("C-s" . consult-line)
    ("C-x b" . consult-buffer)
+   ("M-x" . consult-mode-command)
+   ("C-x C-f" . consult-find-file)
    ("M-y" . consult-yank-pop)
    ("M-s" . consult-ripgrep)
    ("M-p" . consult-git-grep)))
