@@ -259,6 +259,40 @@
   (setq recentf-max-saved-items 50)
   (setq recentf-max-menu-items 15))
 
+;; Corfu - In-buffer completion UI
+(use-package corfu
+  :straight t
+  :init
+  (global-corfu-mode)
+  :custom
+  (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous`
+  (corfu-auto t)                 ;; Enable auto completion
+  (corfu-auto-prefix 2)          ;; Complete with minimum 2 characters
+  (corfu-auto-delay 0.0)         ;; No delay for completion
+  (corfu-quit-at-boundary 'separator) ;; Automatically quit at word boundary
+  (corfu-echo-documentation 0.25)     ;; Show documentation quickly
+  (corfu-preview-current 'insert)     ;; Preview current candidate
+  (corfu-preselect-first t)           ;; Preselect first candidate
+  :config
+  ;; TAB-and-Go customizations
+  (define-key corfu-map (kbd "TAB") 'corfu-next)
+  (define-key corfu-map (kbd "S-TAB") 'corfu-previous))
+
+;; Cape - Completion At Point Extensions
+(use-package cape
+  :straight t
+  :init
+  ;; Add useful completion sources
+  (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  (add-to-list 'completion-at-point-functions #'cape-keyword)
+  :config
+  ;; Silence the pcomplete capf, no errors or messages!
+  (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-silent)
+  
+  ;; Ensure case-sensitivity for file completion
+  (advice-add 'comint-completion-at-point :around #'cape-wrap-noninteractive))
+
 
 ;; Ivy, Counsel and Swiper - Completion framework and commands
 (use-package ivy
@@ -571,19 +605,46 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
 (use-package lsp-treemacs
   :commands lsp-treemacs-errors-list)
 
-;; Tree-sitter - Incremental parsing system
-(when (fboundp 'global-tree-sitter-mode)
-  (use-package tree-sitter
-    :ensure nil  ;; built-in
-    :hook
-    ((go-mode . tree-sitter-mode)
-     (js-mode . tree-sitter-mode)
-     (typescript-mode . tree-sitter-mode)
-     (python-mode . tree-sitter-mode)
-     (ruby-mode . tree-sitter-mode)
-     (rust-mode . tree-sitter-mode))
-    :config
-    (global-tree-sitter-mode)))
+;; Tree-sitter - Incremental parsing system for Emacs 30
+(use-package treesit
+  :ensure nil  ;; built-in
+  :config
+  ;; Define language sources for auto-installation
+  (setq treesit-language-source-alist
+        '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+          (cmake "https://github.com/uyha/tree-sitter-cmake")
+          (css "https://github.com/tree-sitter/tree-sitter-css")
+          (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+          (go "https://github.com/tree-sitter/tree-sitter-go")
+          (html "https://github.com/tree-sitter/tree-sitter-html")
+          (javascript "https://github.com/tree-sitter/tree-sitter-javascript")
+          (json "https://github.com/tree-sitter/tree-sitter-json")
+          (make "https://github.com/alemuller/tree-sitter-make")
+          (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+          (python "https://github.com/tree-sitter/tree-sitter-python")
+          (toml "https://github.com/tree-sitter/tree-sitter-toml")
+          (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+          (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+          (yaml "https://github.com/ikatyang/tree-sitter-yaml")
+          (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")))
+  
+  ;; Auto-install missing tree-sitter grammars when needed
+  (dolist (grammar treesit-language-source-alist)
+    (unless (treesit-language-available-p (car grammar))
+      (message "Installing tree-sitter grammar for %s" (car grammar))
+      (treesit-install-language-grammar (car grammar))))
+  
+  ;; Use tree-sitter modes for common languages
+  (setq major-mode-remap-alist
+        '((yaml-mode . yaml-ts-mode)
+          (bash-mode . bash-ts-mode)
+          (js-mode . js-ts-mode)
+          (typescript-mode . typescript-ts-mode)
+          (json-mode . json-ts-mode)
+          (css-mode . css-ts-mode)
+          (python-mode . python-ts-mode)
+          (go-mode . go-ts-mode)
+          (dockerfile-mode . dockerfile-ts-mode))))
 
 ;; Hydra - Make Emacs bindings that stick around
 (use-package hydra)

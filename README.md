@@ -23,10 +23,10 @@ Everything is managed with [`use-package`](https://github.com/jwiegley/use-packa
 
 ## Highlights
 
-- **Completion**: Ivy, Counsel (for M-x and file finding), Consult, Marginalia, Embark
+- **Completion**: Ivy, Counsel (for M-x and file finding), Consult, Marginalia, Embark, Corfu (in-buffer completion), Cape
 - **Project & File Navigation**: Treemacs with Nerd Icons, Winum, Projectile integration
 - **UI & Aesthetics**: Doom Themes, Doom Modeline, Solaire Mode, Ligatures, Nerd Icons
-- **Language Support**: LSP Mode + UI + Treemacs, Tree‑sitter, YAML, Go, Docker, CloudFormation
+- **Language Support**: LSP Mode + UI + Treemacs, Native Tree‑sitter (Emacs 30), YAML, Go, Docker, CloudFormation
 - **Productivity Tools**: Magit, Flycheck, Deadgrep, VTerm + VTerm‑Toggle, ChatGPT Shell, Claude Code
 - **Editing Enhancements**: Expand‑Region, Comment‑DWIM‑2, Duplicate Line, Whitespace Cleanup, Undo‑Fu, Simpleclip
 - **Core Tweaks**: Better `yes-or-no` answers, no backup files, server mode, macOS Super keybindings
