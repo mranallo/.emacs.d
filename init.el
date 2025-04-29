@@ -384,6 +384,18 @@ Otherwise returns nil."
 
 ;; Consult - Additional search and navigation commands
 (use-package consult
+  :init
+  ;; Use consult-fd if fd is available, otherwise use consult-find
+  (defvar consult-find-command)
+  (defvar consult-fd-command)
+  (when (executable-find "fd")
+    (setq consult-fd-args '("--color=never" "--full-path")))
+  
+  ;; Configure ripgrep command for consult-ripgrep
+  (defvar consult-ripgrep-command)
+  (when (executable-find "rg")
+    (setq consult-ripgrep-command 
+          "rg --null --line-buffered --color=never --max-columns=1000 --path-separator / --smart-case --no-heading --line-number . -e %s"))
   :bind
   (("C-s" . consult-line)
    ("C-x b" . consult-buffer)
@@ -641,7 +653,7 @@ Otherwise returns nil."
 (use-package exec-path-from-shell
   :if (memq window-system '(mac ns x))
   :config
-  (setq exec-path-from-shell-variables '("PATH" "GOPATH"))
+  (setq exec-path-from-shell-variables '("PATH" "GOPATH" "MANPATH"))
   (exec-path-from-shell-initialize))
 
 ;; Flycheck - Syntax checking
