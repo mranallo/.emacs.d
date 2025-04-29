@@ -142,7 +142,7 @@
     (not (display-graphic-p)))
 
 (defmacro when-term (&rest body)
-  "Works just like `progn' but will only evaluate BODY when Emacs is running in a terminal.
+  "Works just like `progn' but will only evaluate BODY when in terminal.
 Otherwise returns nil."
   `(when (is-in-terminal) ,@body))
 
@@ -150,7 +150,7 @@ Otherwise returns nil."
 (when-term
  (require 'mouse)
  (xterm-mouse-mode t)
- (defun track-mouse (e))
+ (defun track-mouse (_e))
  (global-set-key [mouse-4] 'scroll-down-line)
  (global-set-key [mouse-5] 'scroll-up-line))
 
@@ -169,6 +169,12 @@ Otherwise returns nil."
 ;; Doom themes - A collection of modern themes
 (use-package doom-themes
   :config
+  ;; Declare variables before use
+  (defvar doom-themes-enable-bold t
+    "If nil, bold is universally disabled.")
+  (defvar doom-themes-enable-italic t
+    "If nil, italics is universally disabled.")
+  
   (setq doom-themes-enable-bold t
 	doom-themes-enable-italic t)
 
