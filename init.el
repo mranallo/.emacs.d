@@ -1,4 +1,4 @@
-;;; package --- Summary
+;;; init.el --- Personal Emacs configuration -*- lexical-binding: t -*-
 ;;; Commentary:
 ;;; Code:
 
@@ -20,6 +20,10 @@
 
 ;; Declare external function to silence compiler warning
 (declare-function straight-use-package "straight" (package &optional no-clone no-build))
+
+;; Define variables before use to avoid free variable warnings
+(defvar straight-use-package-by-default nil
+  "When non-nil, make `use-package' use straight.el by default.")
 
 ;; straight.el package manager bootstrap
 (defvar bootstrap-version)
@@ -138,7 +142,8 @@
     (not (display-graphic-p)))
 
 (defmacro when-term (&rest body)
-  "Works just like `progn' but will only evaluate expressions in VAR when Emacs is running in a terminal else just nil."
+  "Works just like `progn' but will only evaluate BODY when Emacs is running in a terminal.
+Otherwise returns nil."
   `(when (is-in-terminal) ,@body))
 
 ;; ITERM2 MOUSE SUPPORT
@@ -167,7 +172,9 @@
   (setq doom-themes-enable-bold t
 	doom-themes-enable-italic t)
 
-  (setq doom-themes-treemacs-theme "nerd-icons")
+  ;; Declare variable before use
+  (defvar doom-themes-treemacs-theme "nerd-icons"
+    "The treemacs theme to use with doom-themes.")
   (doom-themes-treemacs-config)
   (doom-themes-org-config)
 
@@ -364,6 +371,13 @@
   (setq avy-style 'at-full))
 
 ;; Treemacs - Tree layout file explorer
+(declare-function treemacs-filewatch-mode "treemacs")
+(declare-function treemacs-fringe-indicator-mode "treemacs")
+(declare-function treemacs-git-mode "treemacs")
+(declare-function treemacs-hide-gitignored-files-mode "treemacs")
+(declare-function treemacs-set-scope-type "treemacs-scope")
+(declare-function treemacs-load-theme "treemacs-themes")
+
 (use-package treemacs
   :defer t
   :bind (("s-\\" . treemacs))  ;; Command-\\ to toggle file tree
@@ -696,17 +710,20 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
   ("<f6>" . magit-blame-addition)
   :config
   (progn
- (defadvice magit-status (around magit-fullscreen activate)
-  "Set Magit to run fullscreen."
-  (window-configuration-to-register :magit-fullscreen)
-  ad-do-it
-  (delete-other-windows)))
+   ;; Make magit status run fullscreen
+   (defun magit-status-fullscreen (orig-fun &rest args)
+     "Advice to make magit-status run fullscreen."
+     (window-configuration-to-register :magit-fullscreen)
+     (apply orig-fun args)
+     (delete-other-windows))
+   
+   (advice-add 'magit-status :around #'magit-status-fullscreen)
   
-(defun magit-quit-session ()
-  "Restore the previous window configuration and kill the magit buffer."
-  (interactive)
-  (kill-buffer)
-  (jump-to-register :magit-fullscreen)))
+   (defun magit-quit-session ()
+     "Restore the previous window configuration and kill the magit buffer."
+     (interactive)
+     (kill-buffer)
+     (jump-to-register :magit-fullscreen))))
 
 ;;; =====================================================================
 ;;; Terminal and Shell
