@@ -724,14 +724,14 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
     (setq eglot-workspace-configuration 
           `((:yaml . (:format . t))
             (:go . (:usePlaceholders . t))
-            (:json . (:format . t))))))
+            (:json . (:format . t)))))
   
   ;; Keybindings for Eglot features
-  (bind-keys :map eglot-mode-map
-             ("C-c l a" . eglot-code-actions)
-             ("C-c l r" . eglot-rename)
-             ("C-c l f" . eglot-format)
-             ("C-c l d" . eldoc))
+  :bind (:map eglot-mode-map
+         ("C-c l a" . eglot-code-actions)
+         ("C-c l r" . eglot-rename)
+         ("C-c l f" . eglot-format)
+         ("C-c l d" . eldoc)))
 
 ;; Enhanced tree-sitter configuration
 (use-package treesit
