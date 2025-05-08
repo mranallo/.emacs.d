@@ -737,34 +737,37 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
 (use-package treesit
   :ensure nil  ;; built-in
   :config
-  ;; Define language sources for auto-installation
+  ;; Define language sources for auto-installation - core languages only
+  ;; Use git protocol instead of https to avoid authentication issues
   (setq treesit-language-source-alist
-        '((bash "https://github.com/tree-sitter/tree-sitter-bash")
-          (cmake "https://github.com/uyha/tree-sitter-cmake")
-          (css "https://github.com/tree-sitter/tree-sitter-css")
-          (elisp "https://github.com/Wilfred/tree-sitter-elisp")
-          (go "https://github.com/tree-sitter/tree-sitter-go")
-          (html "https://github.com/tree-sitter/tree-sitter-html")
-          (javascript "https://github.com/tree-sitter/tree-sitter-javascript")
-          (json "https://github.com/tree-sitter/tree-sitter-json")
-          (make "https://github.com/alemuller/tree-sitter-make")
-          (markdown "https://github.com/ikatyang/tree-sitter-markdown")
-          (python "https://github.com/tree-sitter/tree-sitter-python")
-          (toml "https://github.com/tree-sitter/tree-sitter-toml")
-          (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-          (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-          (yaml "https://github.com/ikatyang/tree-sitter-yaml")
-          (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
-          (rust "https://github.com/tree-sitter/tree-sitter-rust")
-          (xml "https://github.com/tree-sitter/tree-sitter-xml")
-          (c "https://github.com/tree-sitter/tree-sitter-c")
-          (cpp "https://github.com/tree-sitter/tree-sitter-cpp")))
+        '((bash "git://github.com/tree-sitter/tree-sitter-bash")
+          (cmake "git://github.com/uyha/tree-sitter-cmake")
+          (css "git://github.com/tree-sitter/tree-sitter-css")
+          (elisp "git://github.com/Wilfred/tree-sitter-elisp")
+          (go "git://github.com/tree-sitter/tree-sitter-go")
+          (html "git://github.com/tree-sitter/tree-sitter-html")
+          (javascript "git://github.com/tree-sitter/tree-sitter-javascript")
+          (json "git://github.com/tree-sitter/tree-sitter-json")
+          (make "git://github.com/alemuller/tree-sitter-make")
+          (markdown "git://github.com/ikatyang/tree-sitter-markdown")
+          (python "git://github.com/tree-sitter/tree-sitter-python")
+          (toml "git://github.com/tree-sitter/tree-sitter-toml")
+          (tsx "git://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+          (typescript "git://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+          (yaml "git://github.com/ikatyang/tree-sitter-yaml")
+          (dockerfile "git://github.com/camdencheek/tree-sitter-dockerfile")))
   
-  ;; Auto-install missing tree-sitter grammars when needed
+  ;; Auto-install missing tree-sitter grammars with error handling
   (dolist (grammar treesit-language-source-alist)
-    (unless (treesit-language-available-p (car grammar))
-      (message "Installing tree-sitter grammar for %s" (car grammar))
-      (treesit-install-language-grammar (car grammar))))
+    (let ((lang (car grammar)))
+      (unless (treesit-language-available-p lang)
+        (condition-case err
+            (progn
+              (message "Installing tree-sitter grammar for %s" lang)
+              (treesit-install-language-grammar lang))
+          (error
+           (message "Failed to install tree-sitter grammar for %s: %s" 
+                    lang (error-message-string err)))))))
   
   ;; Expanded tree-sitter modes for common languages (Emacs 30.1 optimized)
   (setq major-mode-remap-alist
