@@ -737,7 +737,7 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
 (use-package treesit
   :ensure nil  ;; built-in
   :config
-  ;; Define language sources for auto-installation - core languages only
+  ;; Define language sources for auto-installation
   ;; Use git protocol instead of https to avoid authentication issues
   (setq treesit-language-source-alist
         '((bash "git://github.com/tree-sitter/tree-sitter-bash")
@@ -755,7 +755,8 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
           (tsx "git://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
           (typescript "git://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
           (yaml "git://github.com/ikatyang/tree-sitter-yaml")
-          (dockerfile "git://github.com/camdencheek/tree-sitter-dockerfile")))
+          (dockerfile "git://github.com/camdencheek/tree-sitter-dockerfile")
+          (rust "git://github.com/tree-sitter/tree-sitter-rust")))
   
   ;; Auto-install missing tree-sitter grammars with error handling
   (dolist (grammar treesit-language-source-alist)
