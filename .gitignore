@@ -34,3 +34,9 @@ recentf
 /projectile-bookmarks.eld
 .aider*
 /request/
+/history
+/projects
+/auto-save-list/
+/site-lisp/themes/
+/straight/
+/tree-sitter/
