@@ -64,13 +64,14 @@
       use-package-expand-minimally t
       use-package-minimum-reported-time 0.2)
 
-;; Use GCMH for better GC management
+;; Use GCMH for better GC management optimized for Emacs 30.1
 (use-package gcmh
   :ensure t
   :init (gcmh-mode 1)
   :config
-  (setq gcmh-idle-delay 5
-        gcmh-high-cons-threshold (* 16 1024 1024)  ;; 16MB
+  (setq gcmh-idle-delay 1                       ;; Run GC sooner when idle
+        gcmh-high-cons-threshold (* 64 1024 1024)  ;; 64MB - increased for modern systems
+        gcmh-low-cons-threshold (* 16 1024 1024)   ;; 16MB minimum
         gcmh-verbose nil))
 
 ;; Byte compile lisp
@@ -97,53 +98,53 @@
 ;; no menu-bar-mode
 ;; (menu-bar-mode -1)
 
-;; Better backup strategy
+;; Enhanced backup strategy optimized for performance
 (setq backup-directory-alist '(("." . "~/.emacs.d/backups"))
       auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t))
       backup-by-copying t
       delete-old-versions t
       kept-new-versions 6
       kept-old-versions 2
-      version-control t)
+      version-control t
+      remote-file-name-inhibit-locks t  ; Faster remote file operations
+      create-lockfiles nil              ; Disable lock files for better performance
+      auto-save-default t               ; Keep auto-save enabled
+      auto-save-timeout 20              ; Seconds idle before auto-save (increased)
+      auto-save-interval 200)           ; Keystrokes before auto-save (increased)
 
 ;; delete files by moving them to the OS X trash
 (setq delete-by-moving-to-trash t)
 
-;; Smooth pixel-based scrolling
+;; Optimized pixel-based scrolling for Emacs 30.1
 (pixel-scroll-precision-mode 1)
-(setq pixel-scroll-precision-use-momentum t)
+(setq pixel-scroll-precision-use-momentum t
+      pixel-scroll-precision-interpolate-page t  ; Smooth page scrolls
+      pixel-scroll-precision-interpolation-factor 0.75
+      pixel-scroll-precision-large-scroll-height 40.0
+      pixel-scroll-precision-initial-velocity-factor 9.0)
 
-;; Enhanced completions UI
+;; Enhanced completions UI optimized for Emacs 30.1
 (setq completions-format 'one-column
       completions-detailed t
       completions-max-height 20
-      completions-highlight-face 'completions-highlight)
+      completions-highlight-face 'completions-highlight
+      completions-sort 'historical
+      completion-category-overrides '((file (styles partial-completion))
+                                      (buffer (styles substring)))
+      completion-cycle-threshold 3)
 
 ;; Enable repeat-mode for better command repetition
 (repeat-mode 1)
 
-;; Use the built-in undo system with better defaults
-(setq undo-limit 67108864) ; 64mb
-(setq undo-strong-limit 100663296) ; 96mb
-(setq undo-outer-limit 1006632960) ; 960mb
+;; Use the built-in undo system with better defaults for Emacs 30.1
+(setq undo-limit 134217728) ; 128mb
+(setq undo-strong-limit 201326592) ; 192mb
+(setq undo-outer-limit 1610612736) ; 1.5gb
 
-;; Smooth pixel-based scrolling
-(pixel-scroll-precision-mode 1)
-(setq pixel-scroll-precision-use-momentum t)
-
-;; Enhanced completions UI
-(setq completions-format 'one-column
-      completions-detailed t
-      completions-max-height 20
-      completions-highlight-face 'completions-highlight)
-
-;; Enable repeat-mode for better command repetition
-(repeat-mode 1)
-
-;; Use the built-in undo system with better defaults
-(setq undo-limit 67108864) ; 64mb
-(setq undo-strong-limit 100663296) ; 96mb
-(setq undo-outer-limit 1006632960) ; 960mb
+;; Additional performance optimizations for Emacs 30.1
+(setq read-process-output-max (* 4 1024 1024)) ; 4mb - Increase read chunk size for process output
+(setq auto-mode-case-fold nil)                 ; Speed up file opening by disabling case folding
+(setq frame-resize-pixelwise t)                ; Smoother frame resizing
 
 ;; use line numbers in programming modes
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
@@ -525,9 +526,9 @@ Otherwise returns nil."
 (use-package treemacs-projectile
   :after (treemacs projectile))
 
-;; Treemacs Icons Dired - Show treemacs icons in dired
-(use-package treemacs-icons-dired
-  :hook (dired-mode . treemacs-icons-dired-enable-once))
+;; Treemacs Icons Dired - DISABLED to prevent double icons with nerd-icons-dired
+;; (use-package treemacs-icons-dired
+;;   :hook (dired-mode . treemacs-icons-dired-enable-once))
 
 ;; Treemacs Magit - Integration between Treemacs and Magit
 (use-package treemacs-magit
@@ -683,22 +684,54 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
     :modes 'yaml-mode)
   (add-to-list 'flycheck-checkers 'cfn-lint))
 
-;; Replace LSP-mode with built-in Eglot
+;; Enhanced Eglot configuration for Emacs 30.1
 (use-package eglot
   :ensure nil  ;; built-in
   :hook
+  ;; Hook into all tree-sitter modes
   ((go-mode go-ts-mode) . eglot-ensure)
   ((yaml-mode yaml-ts-mode) . eglot-ensure)
   ((dockerfile-mode dockerfile-ts-mode) . eglot-ensure)
+  ((js-mode js-ts-mode) . eglot-ensure)
+  ((typescript-mode typescript-ts-mode tsx-ts-mode) . eglot-ensure)
+  ((python-mode python-ts-mode) . eglot-ensure)
+  ((c-mode c-ts-mode) . eglot-ensure)
+  ((c++-mode c++-ts-mode) . eglot-ensure)
+  ((rust-mode rust-ts-mode) . eglot-ensure)
   :config
+  ;; Performance optimizations for Emacs 30.1
   (setq eglot-autoshutdown t)
-  (setq eglot-sync-connect nil)
+  (setq eglot-sync-connect 1)  ; Improved in Emacs 30.1 with native JSON
   (setq eglot-events-buffer-size 0)
   (setq eglot-extend-to-xref t)
   
-  ;; Add CloudFormation LSP server if you use it
+  ;; Reduce network traffic and improve performance
+  (setq eglot-connect-timeout 30)
+  (setq eglot-send-changes-idle-time 0.5)
+  
+  ;; Disable automatic highlighting to improve performance
+  (setq eglot-highlight-symbol-face nil)
+  
+  ;; Improve code completion
+  (setq eglot-ignored-server-capabilities '(:documentHighlightProvider))
+  
+  ;; Language servers configuration
   (add-to-list 'eglot-server-programs
-               '((yaml-mode yaml-ts-mode) . ("cfn-lsp-extra"))))
+               '((yaml-mode yaml-ts-mode) . ("cfn-lsp-extra")))
+  
+  ;; Enable snippet expansion with corfu
+  (with-eval-after-load 'corfu
+    (setq eglot-workspace-configuration 
+          `((:yaml . (:format . t))
+            (:go . (:usePlaceholders . t))
+            (:json . (:format . t))))))
+  
+  ;; Keybindings for Eglot features
+  (bind-keys :map eglot-mode-map
+             ("C-c l a" . eglot-code-actions)
+             ("C-c l r" . eglot-rename)
+             ("C-c l f" . eglot-format)
+             ("C-c l d" . eldoc))
 
 ;; Enhanced tree-sitter configuration
 (use-package treesit
@@ -721,7 +754,11 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
           (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
           (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
           (yaml "https://github.com/ikatyang/tree-sitter-yaml")
-          (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")))
+          (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
+          (rust "https://github.com/tree-sitter/tree-sitter-rust")
+          (xml "https://github.com/tree-sitter/tree-sitter-xml")
+          (c "https://github.com/tree-sitter/tree-sitter-c")
+          (cpp "https://github.com/tree-sitter/tree-sitter-cpp")))
   
   ;; Auto-install missing tree-sitter grammars when needed
   (dolist (grammar treesit-language-source-alist)
@@ -729,26 +766,60 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
       (message "Installing tree-sitter grammar for %s" (car grammar))
       (treesit-install-language-grammar (car grammar))))
   
-  ;; Use tree-sitter modes for common languages
+  ;; Expanded tree-sitter modes for common languages (Emacs 30.1 optimized)
   (setq major-mode-remap-alist
         '((yaml-mode . yaml-ts-mode)
           (bash-mode . bash-ts-mode)
+          (sh-mode . bash-ts-mode)
           (js-mode . js-ts-mode)
+          (js-json-mode . json-ts-mode)
           (typescript-mode . typescript-ts-mode)
           (json-mode . json-ts-mode)
           (css-mode . css-ts-mode)
           (python-mode . python-ts-mode)
           (go-mode . go-ts-mode)
-          (dockerfile-mode . dockerfile-ts-mode)))
+          (rust-mode . rust-ts-mode)
+          (c-mode . c-ts-mode)
+          (c++-mode . c++-ts-mode)
+          (java-mode . java-ts-mode)
+          (dockerfile-mode . dockerfile-ts-mode)
+          (html-mode . html-ts-mode)
+          (toml-mode . toml-ts-mode)
+          (xml-mode . xml-ts-mode)))
   
-  ;; Configure tree-sitter indentation for specific modes
+  ;; Emacs 30.1 tree-sitter navigation enhancements
+  (defun ts-setup-navigation ()
+    "Set up enhanced tree-sitter navigation."
+    (setq-local forward-sexp-function nil)  ; Use improved built-in sexp navigation
+    (setq-local treesit-thing-settings 
+                '((defun "function_definition" "method_definition" "class_declaration")
+                  (sexp "expression" "statement" "declaration")
+                  (comment "comment")
+                  (string "string" "string_literal" "raw_string_literal"))))
+  
+  ;; Apply navigation enhancements to all tree-sitter modes
+  (dolist (mode '(yaml-ts-mode-hook bash-ts-mode-hook js-ts-mode-hook 
+                  typescript-ts-mode-hook json-ts-mode-hook css-ts-mode-hook
+                  python-ts-mode-hook go-ts-mode-hook rust-ts-mode-hook
+                  c-ts-mode-hook c++-ts-mode-hook java-ts-mode-hook
+                  dockerfile-ts-mode-hook))
+    (add-hook mode #'ts-setup-navigation))
+  
+  ;; Configure tree-sitter font-lock and indentation
   (setq treesit-font-lock-level 4)
   
-  ;; Add language-specific configurations
+  ;; Mode-specific configurations
   (add-hook 'yaml-ts-mode-hook
             (lambda ()
               (setq-local indent-tabs-mode nil
                           tab-width 2))))
+  
+  ;; Enable structural navigation with tree-sitter
+  (bind-keys*
+   ("C-M-n" . treesit-end-of-defun)
+   ("C-M-p" . treesit-beginning-of-defun)
+   ("C-M-d" . treesit-beginning-of-thing)
+   ("C-M-u" . treesit-end-of-thing))
 
 ;; Use Project.el instead of Projectile
 (use-package project

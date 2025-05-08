@@ -30,18 +30,20 @@ Everything is managed with [`use-package`](https://github.com/jwiegley/use-packa
 - **Editing Enhancements**: Expand‑Region, Comment‑DWIM‑2, Duplicate Line, Whitespace Cleanup, Enhanced Undo, Simpleclip
 - **Core Tweaks**: Better `yes-or-no` answers, robust backup strategy, server mode, macOS Super keybindings
 
-## Emacs 30 Optimizations
+## Emacs 30.1 Optimizations
 
-- **Native Compilation**: Dedicated ELN cache directory and optimized compilation settings
-- **Tree-sitter**: Enhanced language support with automatic grammar installation
-- **Eglot**: Built-in LSP client replacing external LSP-mode
+- **Native Compilation**: Optimized for performance with higher compilation levels and JIT compilation
+- **Tree-sitter**: Expanded language support with improved structural navigation and "thing-at-point" integration
+- **Eglot**: Enhanced LSP client optimized for Emacs 30.1's native JSON improvements
 - **Project.el**: Built-in project management replacing Projectile
-- **Pixel Scrolling**: Smooth scrolling with momentum
-- **Enhanced Completions UI**: Improved minibuffer completion interface
-- **Tab Bar**: Customized with intuitive keybindings
-- **Repeat Mode**: Better command repetition
-- **Robust Backup Strategy**: Version-controlled backups instead of disabling them
-- **Memory Management**: GCMH for intelligent garbage collection
+- **Pixel Scrolling**: Advanced smooth scrolling with momentum, interpolation, and page continuity
+- **Enhanced Completions UI**: Improved minibuffer completion with historical sorting and category-specific styles
+- **Tab Bar**: Customized with intuitive keybindings and visual enhancements
+- **Repeat Mode**: Better command repetition with streamlined interface
+- **Robust Backup Strategy**: Performance-tuned backup with optimized auto-save settings
+- **Memory Management**: GCMH with higher thresholds optimized for modern systems
+- **Startup Optimization**: Reduced font cache rebuilding and improved initial rendering
+- **Process Performance**: Larger read buffers for better LSP and external process communication
 
 ## Installation
 
@@ -81,6 +83,14 @@ Everything is managed with [`use-package`](https://github.com/jwiegley/use-packa
   - `s-z` / `s-Z` for Undo/Redo
   - `s-{`, `s-}` for tab navigation
   - `s-t`, `s-w` for new tab and close tab
+- **Tree-sitter Navigation**:
+  - `C-M-n`, `C-M-p` for function/defun navigation
+  - `C-M-d`, `C-M-u` for thing-at-point navigation
+- **Eglot**:
+  - `C-c l a` for code actions
+  - `C-c l r` for rename
+  - `C-c l f` for format
+  - `C-c l d` for documentation
 - **Vertico/Consult/Embark** for enhanced minibuffer completion
 - **VTerm** toggle with ```` (double backtick chord) or `C-\\`.
 - **Claude Code** via `C-c c` prefix (e.g., `C-c c c` to start, `C-c c t` to toggle)
