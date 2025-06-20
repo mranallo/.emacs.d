@@ -202,6 +202,16 @@ Otherwise returns nil."
 ;;; UI/UX Enhancements
 ;;; =====================================================================
 
+;; Set initial frame size and position
+(when window-system
+  (set-frame-size (selected-frame) 200 100))    ; Size: 200 columns, 100 rows
+
+;; Font rendering optimizations for macOS
+(when (eq system-type 'darwin)
+  (setq ns-use-thin-smoothing t)
+  (setq ns-antialias-text t)
+  (setq mac-allow-anti-aliasing t))
+
 ;; Beacon - Highlight cursor position when scrolling
 (use-package beacon
   :init
@@ -572,7 +582,8 @@ Otherwise returns nil."
   ("<M-down>" . move-line-down)
   ("<M-up>" . move-line-up)
   ("C-a" . smarter-move-beginning-of-line)
-  ("C-c d" . duplicate-line-or-region))
+  ("C-c d" . duplicate-line-or-region)
+  ("C-c C-k" . claude-code-with-context))
 
 ;; Whitespace-cleanup-mode - Automatically clean whitespace
 (use-package whitespace-cleanup-mode

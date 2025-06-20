@@ -26,7 +26,7 @@ Everything is managed with [`use-package`](https://github.com/jwiegley/use-packa
 - **Project & File Navigation**: Project.el, Treemacs with Nerd Icons, Winum
 - **UI & Aesthetics**: Doom Themes, Doom Modeline, Solaire Mode, Ligatures, Nerd Icons, Pixel Scrolling
 - **Language Support**: Eglot (built-in LSP client), Native Tree‑sitter (Emacs 30), YAML, Go, Docker, CloudFormation
-- **Productivity Tools**: Magit, Flycheck, Deadgrep, VTerm + VTerm‑Toggle, ChatGPT Shell, Claude Code
+- **Productivity Tools**: Magit, Flycheck, Deadgrep, VTerm + VTerm‑Toggle, ChatGPT Shell, Claude Code + Context Integration
 - **Editing Enhancements**: Expand‑Region, Comment‑DWIM‑2, Duplicate Line, Whitespace Cleanup, Enhanced Undo, Simpleclip
 - **Core Tweaks**: Better `yes-or-no` answers, robust backup strategy, server mode, macOS Super keybindings
 
@@ -94,6 +94,7 @@ Everything is managed with [`use-package`](https://github.com/jwiegley/use-packa
 - **Vertico/Consult/Embark** for enhanced minibuffer completion
 - **VTerm** toggle with ```` (double backtick chord) or `C-\\`.
 - **Claude Code** via `C-c c` prefix (e.g., `C-c c c` to start, `C-c c t` to toggle)
+  - `C-c C-k` for Claude Code with automatic project context
 - **Magit** on `<f5>` (status), `<f6>` (blame)
 - **Treemacs** on `C-x t t`, `s-\\`, `M-0`, and other intuitive combos
 - **Project.el** commands via `C-c p` prefix
