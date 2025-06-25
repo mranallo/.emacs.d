@@ -2,41 +2,79 @@
 *.elc
 
 # Packaging
-.cask
-elpa/*
+.cask/
+elpa/
+straight/
 
 # Backup files
 *~
+*#
+.#*
 
 # Undo-tree save-files
 *.~undo-tree
 
-# IDO
+# Auto-generated files and caches
 ido.last
 smex-items
-
-# Auto-generated customizations
-custom.el
-
-# Transient files
-transient/*
+transient/
 .savehist
-/.#smex-items
 .persistent-scratch
 recentf
 .lsp-session-v1
-/eln-cache/
-/chatgpt/
-/eshell/
-/.cache/
-*.el#
-/.chatgpt-shell.el
-/projectile-bookmarks.eld
+eln-cache/
+.cache/
+request/
+history
+projects
+auto-save-list/
+tree-sitter/
+
+# Application-specific
+chatgpt/
+eshell/
+.chatgpt-shell.el
+projectile-bookmarks.eld
+
+# Development tools
 .aider*
-/request/
-/history
-/projects
-/auto-save-list/
-/site-lisp/themes/
-/straight/
-/tree-sitter/
+**/.claude/settings.local.json
+
+# Custom themes (uncomment if not tracking custom themes)
+# site-lisp/themes/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# Network Trash Folder
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk

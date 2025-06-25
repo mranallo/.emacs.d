@@ -27,7 +27,7 @@ Everything is managed with [`use-package`](https://github.com/jwiegley/use-packa
 - **UI & Aesthetics**: Doom Themes, Doom Modeline, Solaire Mode, Ligatures, Nerd Icons, Pixel Scrolling
 - **Language Support**: Eglot (built-in LSP client), Native Tree‑sitter (Emacs 30), YAML, Go, Docker, CloudFormation
 - **Productivity Tools**: Magit, Flycheck, Deadgrep, VTerm + VTerm‑Toggle, ChatGPT Shell, Claude Code + Context Integration
-- **Editing Enhancements**: Expand‑Region, Comment‑DWIM‑2, Duplicate Line, Whitespace Cleanup, Enhanced Undo, Simpleclip
+- **Editing Enhancements**: Expand‑Region, Comment‑DWIM‑2, Duplicate Line, Whitespace Cleanup, Enhanced Undo
 - **Core Tweaks**: Better `yes-or-no` answers, robust backup strategy, server mode, macOS Super keybindings
 
 ## Emacs 30.1 Optimizations

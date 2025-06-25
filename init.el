@@ -597,13 +597,6 @@ Otherwise returns nil."
   ("s-z" . undo-fu-only-undo)
   ("s-Z" . undo-fu-only-redo))
 
-;; Simpleclip - Simplified clipboard handling
-(use-package simpleclip
-  :bind
-  ("s-c" . simpleclip-copy)
-  ("s-x" . simpleclip-cut)
-  ("s-v" . simpleclip-paste))
-
 ;; Browse-kill-ring - Browse and insert items from kill ring
 (use-package browse-kill-ring
   :bind

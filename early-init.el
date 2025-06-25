@@ -4,6 +4,10 @@
 (setq gc-cons-threshold most-positive-fixnum
       gc-cons-percentage 0.8)
 
+;; Temporarily disable file-name-handler-alist for faster startup
+(defvar mr/file-name-handler-alist file-name-handler-alist)
+(setq file-name-handler-alist nil)
+
 ;; Prevent package.el from automatic package loading; we do it manually in init.el
 (setq package-enable-at-startup nil)
 
@@ -48,6 +52,16 @@
         comp-speed 3                        ; Increased optimization level for Emacs 30
         comp-native-driver-options '("-O2") ; C compiler optimization level
         native-comp-driver-options '("-O2" "-mtune=native"))) ; Optimize for your CPU
+
+;; Reset file-name-handler-alist after initialization
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq file-name-handler-alist mr/file-name-handler-alist)))
+
+;; Additional optimizations for Emacs 30.1
+(setq read-process-output-max (* 4 1024 1024) ; 4MB
+      auto-mode-case-fold nil              ; Don't ignore case when matching auto-mode-alist
+      inhibit-compacting-font-caches t)    ; Don't compact font caches during GC
 
 (provide 'early-init)
 ;;; early-init.el ends here
