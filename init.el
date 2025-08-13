@@ -3,6 +3,52 @@
 ;;; Code:
 
 ;;; =====================================================================
+;;; Function Definitions (must come first)
+;;; =====================================================================
+
+(defun is-in-terminal()
+  "Will let you know if you are in a terminal session."
+    (not (display-graphic-p)))
+
+(defmacro when-term (&rest body)
+  "Works just like `progn' but will only evaluate BODY when in terminal.
+Otherwise returns nil."
+  `(when (is-in-terminal) ,@body))
+
+(defun magit-status-fullscreen (orig-fun &rest args)
+  "Advice to make magit-status run fullscreen."
+  (window-configuration-to-register :magit-fullscreen)
+  (apply orig-fun args)
+  (delete-other-windows))
+
+(defun magit-quit-session ()
+  "Restore the previous window configuration and kill the magit buffer."
+  (interactive)
+  (kill-buffer)
+  (jump-to-register :magit-fullscreen))
+
+(defun project-vterm ()
+  "Start vterm in the current project's root directory."
+  (interactive)
+  (defvar vterm-buffer-name)
+  (let* ((default-directory (project-root (project-current t)))
+         (vterm-buffer-name (project-prefixed-buffer-name "vterm")))
+    (vterm)))
+
+(defun safe-install-grammar (lang)
+  "Safely install tree-sitter grammar with retry logic."
+  (unless (treesit-language-available-p lang)
+    (let ((max-retries 3))
+      (cl-loop repeat max-retries
+               for attempt from 1
+               do (condition-case err
+                      (progn 
+                        (message "Installing tree-sitter grammar for %s (attempt %d)" lang attempt)
+                        (treesit-install-language-grammar lang)
+                        (cl-return t))
+                    (error (message "Failed attempt %d for %s: %s" attempt lang err)))))))
+
+;;; =====================================================================
 ;;; Basic Setup and Package Management
 ;;; =====================================================================
 
@@ -17,7 +63,7 @@
 (defvar straight-use-package-by-default nil
   "When non-nil, make `use-package' use straight.el by default.")
 
-;; straight.el package manager bootstrap
+;; straight.el package manager bootstrap with error handling
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -29,7 +75,9 @@
          'silent 'inhibit-cookies)
       (goto-char (point-max))
       (eval-print-last-sexp)))
-  (load bootstrap-file nil 'nomessage))
+  (condition-case err
+      (load bootstrap-file nil 'nomessage)
+    (error (message "Failed to bootstrap straight.el: %s" err))))
 
 ;; Configure straight.el to use use-package
 (straight-use-package 'use-package)
@@ -81,6 +129,39 @@
 
 ;; Enable server for opening file/folder from emacsclient
 (server-start)
+
+;; Enable a nice launch Dashboard for Emacs
+(use-package dashboard
+  :ensure t
+  :config
+  (dashboard-setup-startup-hook)
+  
+  ;; Set the banner to your custom logo
+  (setq dashboard-startup-banner "~/.emacs.d/logo/Nuvola_apps_emacs_vector2.png")
+
+  
+  ;; Content is centered
+  (setq dashboard-center-content t)
+  (setq dashboard-vertically-center-content t)
+  
+  ;; Configure dashboard items
+  (setq dashboard-items '((recents  . 5)
+                          (projects . 8)
+                          (bookmarks . 5)))
+  
+  ;; Display icons
+  (setq dashboard-display-icons-p t)
+  (setq dashboard-icon-type 'nerd-icons)
+  (setq dashboard-set-heading-icons t)
+  (setq dashboard-set-file-icons t)
+  
+  ;; Set the icons for dashboard items using the correct function
+  (dashboard-modify-heading-icons '((recents   . "nf-oct-history")
+                                    (bookmarks . "nf-oct-book")
+                                    (projects  . "nf-oct-rocket")))
+
+  )
+
 
 ;;; =====================================================================
 ;;; General Emacs Settings
@@ -146,6 +227,11 @@
 (setq auto-mode-case-fold nil)                 ; Speed up file opening by disabling case folding
 (setq frame-resize-pixelwise t)                ; Smoother frame resizing
 
+;; New Emacs 30.1 features
+(setq long-line-optimizations-mode t)          ; Better handling of files with long lines
+(setq image-scaling-factor 'auto)              ; Improved image rendering
+(setq completion-lazy-hilit t)                 ; Lazy highlighting in completions
+
 ;; use line numbers in programming modes
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 
@@ -172,20 +258,16 @@
  ("s-c" . kill-ring-save)
  ("s-x" . kill-region)
  ("s-v" . yank)
- ("s-a" . mark-whole-buffer))
+ ("s-a" . mark-whole-buffer)
+ ;; Disable C-mouse-wheel font size changes
+ ("C-<wheel-up>" . ignore)
+ ("C-<wheel-down>" . ignore)
+ ("C-<mouse-4>" . ignore)
+ ("C-<mouse-5>" . ignore))
 
 ;;; =====================================================================
 ;;; Terminal Configuration
 ;;; =====================================================================
-
-(defun is-in-terminal()
-  "Will let you know if you are in a terminal session."
-    (not (display-graphic-p)))
-
-(defmacro when-term (&rest body)
-  "Works just like `progn' but will only evaluate BODY when in terminal.
-Otherwise returns nil."
-  `(when (is-in-terminal) ,@body))
 
 ;; ITERM2 MOUSE SUPPORT
 (when-term
@@ -210,12 +292,11 @@ Otherwise returns nil."
 (when (eq system-type 'darwin)
   (setq ns-use-thin-smoothing t)
   (setq ns-antialias-text t)
-  (setq mac-allow-anti-aliasing t))
+  (setq mac-allow-anti-aliasing t)
 
-;; Beacon - Highlight cursor position when scrolling
-(use-package beacon
-  :init
-  (beacon-mode +1))
+  ;; Set Window transparency
+  (set-frame-parameter nil 'alpha 98)
+  (add-to-list 'default-frame-alist '(alpha . 98)))
 
 ;; Doom themes - A collection of modern themes
 (use-package doom-themes
@@ -241,7 +322,8 @@ Otherwise returns nil."
 
 ;; Doom modeline - A fancy and fast mode-line
 (use-package doom-modeline
-  :init (doom-modeline-mode)
+  :defer t
+  :hook (after-init . doom-modeline-mode)
   :custom
   (doom-modeline-icon t)
   (doom-modeline-major-mode-icon t)
@@ -251,13 +333,13 @@ Otherwise returns nil."
 
 ;; Solaire mode - Visually distinguish file-visiting windows from other types of windows
 (use-package solaire-mode
-  :config
-  (solaire-global-mode +1))
+  :defer t
+  :hook (after-init . solaire-global-mode))
 
 ;; Which-key - Display available keybindings in popup
 (use-package which-key
-  :config
-  (which-key-mode +1))
+  :defer t
+  :hook (after-init . which-key-mode))
 
 ;; Winner mode - Navigate window configurations with undo/redo
 (use-package winner
@@ -267,9 +349,9 @@ Otherwise returns nil."
 ;; Standardize on nerd-icons
 (use-package nerd-icons
   :config
-  ;; If you're missing icons, uncomment this to install them
-  ;; (unless (file-exists-p (expand-file-name "icons" nerd-icons-data-dir))
-  ;;   (nerd-icons-install-fonts t))
+  ;; Install fonts if they don't exist
+  (unless (find-font (font-spec :name "Symbols Nerd Font Mono"))
+    (nerd-icons-install-fonts t))
   )
 
 ;; Nerd Icons Completion - Show icons in completion UI
@@ -283,32 +365,15 @@ Otherwise returns nil."
 (use-package nerd-icons-dired
   :hook (dired-mode . nerd-icons-dired-mode))
 
-;; Tab Bar - Built-in tab bar in Emacs 27+
-(use-package tab-bar
-  :ensure nil  ;; built-in
-  :custom
-  (tab-bar-show 1)
-  (tab-bar-close-button-show nil)
-  (tab-bar-new-button-show nil)
-  (tab-bar-new-tab-choice "*scratch*")
-  (tab-bar-tab-hints t)
-  (tab-bar-format '(tab-bar-format-tabs tab-bar-separator))
-  :config
-  (tab-bar-mode 1)
-  :bind
-  (("s-{" . tab-bar-switch-to-prev-tab)
-   ("s-}" . tab-bar-switch-to-next-tab)
-   ("s-t" . tab-bar-new-tab)
-   ("s-w" . tab-bar-close-tab)))
-
 ;; Winum - Navigate windows using numbers
-(use-package winum)
+(use-package winum
+  :defer t
+  :hook (after-init . winum-mode))
 
 ;;; =====================================================================
 ;;; Navigation and Completion
 ;;; =====================================================================
 
-;; Fully commit to Vertico ecosystem (recommended for Emacs 30)
 (use-package vertico
   :init (vertico-mode)
   :custom
@@ -355,12 +420,14 @@ Otherwise returns nil."
   :custom
   (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous`
   (corfu-auto t)                 ;; Enable auto completion
-  (corfu-auto-prefix 2)          ;; Complete with minimum 2 characters
-  (corfu-auto-delay 0.0)         ;; No delay for completion
-  (corfu-quit-at-boundary 'separator) ;; Automatically quit at word boundary
+  (corfu-auto-prefix 3)          ;; Complete with minimum 3 characters
+  (corfu-auto-delay 0.2)         ;; Small delay for completion
+  (corfu-separator ?\s)          ;; Use space as separator
+  (corfu-quit-at-boundary nil)   ;; Don't quit at boundary
+  (corfu-quit-no-match t)        ;; Quit when no match
   (corfu-echo-documentation 0.25)     ;; Show documentation quickly
-  (corfu-preview-current 'insert)     ;; Preview current candidate
-  (corfu-preselect-first t)           ;; Preselect first candidate
+  (corfu-preview-current nil)    ;; Disable current candidate preview
+  (corfu-preselect 'prompt)      ;; Preselect prompt
   :config
   ;; TAB-and-Go customizations
   (with-eval-after-load 'corfu
@@ -414,21 +481,8 @@ Otherwise returns nil."
    ("C-x C-f" . find-file)  ;; Use standard find-file or consider consult-find
    ("M-y" . consult-yank-pop)
    ("M-s f" . consult-find)  ;; Alternative file finding command
-   ("M-s r" . consult-ripgrep)
+   ("C-c r" . consult-ripgrep)
    ("M-p" . consult-git-grep)))
-
-;; Embark - Context-aware actions
-(use-package embark
-  :bind
-  (("C-." . embark-act)
-   ("C-;" . embark-dwim)
-   ("C-h B" . embark-bindings)))
-
-;; Embark Consult - Integration between Embark and Consult
-(use-package embark-consult
-  :after (embark consult)
-  :hook
-  (embark-collect-mode . consult-preview-at-point-mode))
 
 ;; Avy - Jump to visible text using a char-based decision tree
 (use-package avy
@@ -451,67 +505,28 @@ Otherwise returns nil."
 (declare-function treemacs-load-theme "treemacs-themes")
 
 (use-package treemacs
+  :ensure t
   :defer t
-  :bind (("s-\\" . treemacs))  ;; Command-\\ to toggle file tree
+  :commands (treemacs treemacs-display-current-project-exclusively)
+  :bind (("s-\\" . treemacs))
   :init
   (with-eval-after-load 'winum
     (define-key winum-keymap (kbd "s-0") #'treemacs-select-window))
   :config
   (progn
-    (setq treemacs-collapse-dirs                   (if treemacs-python-executable 3 0)
-	  treemacs-deferred-git-apply-delay        0.5
-	  treemacs-directory-name-transformer      #'identity
-	  treemacs-display-in-side-window          t
-	  treemacs-eldoc-display                   'simple
-	  treemacs-file-event-delay                2000
-	  treemacs-file-extension-regex            treemacs-last-period-regex-value
-	  treemacs-file-follow-delay               0.2
-	  treemacs-file-name-transformer           #'identity
-	  treemacs-follow-after-init               t
-	  treemacs-expand-after-init               t
-	  treemacs-find-workspace-method           'find-for-file-or-pick-first
-	  treemacs-git-command-pipe                ""
-	  treemacs-goto-tag-strategy               'refetch-index
-	  treemacs-header-scroll-indicators        '(nil . "^^^^^^")
-	  treemacs-hide-dot-git-directory          t
-	  treemacs-indentation                     2
-	  treemacs-indentation-string              " "
-	  treemacs-is-never-other-window           nil
-	  treemacs-max-git-entries                 5000
-	  treemacs-missing-project-action          'ask
-	  treemacs-move-forward-on-expand          nil
-	  treemacs-no-png-images                   nil
-	  treemacs-no-delete-other-windows         t
-	  treemacs-project-follow-cleanup          t
-	  treemacs-persist-file                    (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
-	  treemacs-position                        'left
-	  treemacs-read-string-input               'from-child-frame
-	  treemacs-recenter-distance               0.1
-	  treemacs-recenter-after-file-follow      nil
-	  treemacs-recenter-after-tag-follow       nil
-	  treemacs-recenter-after-project-jump     'always
-	  treemacs-recenter-after-project-expand   'on-distance
-	  treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask")
-	  treemacs-show-cursor                     nil
-	  treemacs-show-hidden-files               t
-	  treemacs-silent-filewatch                nil
-	  treemacs-silent-refresh                  nil
-	  treemacs-sorting                         'alphabetic-asc
-	  treemacs-select-when-already-in-treemacs 'move-back
-	  treemacs-space-between-root-nodes        t
-	  treemacs-tag-follow-cleanup              t
-	  treemacs-tag-follow-delay                1.5
-	  treemacs-text-scale                      nil
-	  treemacs-user-mode-line-format           nil
-	  treemacs-user-header-line-format         nil
-	  treemacs-wide-toggle-width               70
-	  treemacs-width                           35
-	  treemacs-width-increment                 1
-	  treemacs-width-is-initially-locked       t
-	  treemacs-workspace-switch-cleanup        nil)
-
+    ;; Treemacs font configuration
+    ;; You can customize the font family and size here
+    (defun my/treemacs-setup-font ()
+      "Configure Treemacs font."
+      (setq-local buffer-face-mode-face '(:family "PT Mono" :height 110))
+      (buffer-face-mode 1))
+    
+    (add-hook 'treemacs-mode-hook #'my/treemacs-setup-font)
+    
     (treemacs-filewatch-mode t)
     (treemacs-fringe-indicator-mode 'always)
+    (treemacs-follow-mode t)  ;; Follow current file
+    (treemacs-project-follow-mode t)  ;; Follow current project
 
     (pcase (cons (not (null (executable-find "git")))
 		 (not (null treemacs-python-executable)))
@@ -716,8 +731,11 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
   ;; Disable automatic highlighting to improve performance
   (setq eglot-highlight-symbol-face nil)
   
-  ;; Improve code completion
-  (setq eglot-ignored-server-capabilities '(:documentHighlightProvider))
+  ;; Improve code completion and performance
+  (setq eglot-ignored-server-capabilities 
+        '(:documentHighlightProvider 
+          :documentOnTypeFormattingProvider
+          :inlayHintProvider))  ; Disable inlay hints for performance
   
   ;; Language servers configuration
   (add-to-list 'eglot-server-programs
@@ -762,17 +780,10 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
           (dockerfile "git://github.com/camdencheek/tree-sitter-dockerfile")
           (rust "git://github.com/tree-sitter/tree-sitter-rust")))
   
-  ;; Auto-install missing tree-sitter grammars with error handling
+  ;; Auto-install missing tree-sitter grammars with better error handling
   (dolist (grammar treesit-language-source-alist)
     (let ((lang (car grammar)))
-      (unless (treesit-language-available-p lang)
-        (condition-case err
-            (progn
-              (message "Installing tree-sitter grammar for %s" lang)
-              (treesit-install-language-grammar lang))
-          (error
-           (message "Failed to install tree-sitter grammar for %s: %s" 
-                    lang (error-message-string err)))))))
+      (safe-install-grammar lang)))
   
   ;; Expanded tree-sitter modes for common languages (Emacs 30.1 optimized)
   (setq major-mode-remap-alist
@@ -822,12 +833,7 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
               (setq-local indent-tabs-mode nil
                           tab-width 2))))
   
-  ;; Enable structural navigation with tree-sitter
-  (bind-keys*
-   ("C-M-n" . treesit-end-of-defun)
-   ("C-M-p" . treesit-beginning-of-defun)
-   ("C-M-d" . treesit-beginning-of-thing)
-   ("C-M-u" . treesit-end-of-thing))
+;; Tree-sitter navigation keybindings defined later to avoid conflicts
 
 ;; Use Project.el instead of Projectile
 (use-package project
@@ -844,60 +850,44 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
   ("C-c p" . project-prefix-map)
   :bind
   (:map project-prefix-map
-        ("v" . project-vterm)))
-
-;; Add VTerm to project.el
-(defun project-vterm ()
-  "Start vterm in the current project's root directory."
-  (interactive)
-  (defvar vterm-buffer-name)
-  (let* ((default-directory (project-root (project-current t)))
-         (vterm-buffer-name (project-prefixed-buffer-name "vterm")))
-    (vterm)))
+        ("v" . project-vterm))
+  ("s-t" . project-find-file))
 
 ;; Deadgrep - Fast, modern text search using ripgrep
 (use-package deadgrep
-  :bind ("<f7>" . deadgrep))
+  :bind ("C-c f" . deadgrep))
 
-;; ChatGPT Shell - Interface to ChatGPT
-(use-package chatgpt-shell
-  :custom
-  (chatgpt-shell-openai-key (getenv "OPENAI_API_KEY")))
-
-;; Claude Code - Emacs integration for Claude Code CLI
-(use-package claude-code
-  :straight (:type git :host github :repo "stevemolitor/claude-code.el" :branch "main"
-                   :files ("*.el" (:exclude "demo.gif")))
-  :bind-keymap
-  ("C-c c" . claude-code-command-map)
+;;; =====================================================================
+;;; AI Coding
+;;; =====================================================================
+(use-package claude-code-ide
+  :straight (:type git :host github :repo "manzaltu/claude-code-ide.el")
+  :bind ("C-c c" . claude-code-ide-menu) ; Set your favorite keybinding
   :config
-  (claude-code-mode))
+  (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
 
 ;;; =====================================================================
 ;;; Version Control
 ;;; =====================================================================
 
-;; Magit - Git interface
-(defun magit-status-fullscreen (orig-fun &rest args)
-  "Advice to make magit-status run fullscreen."
-  (window-configuration-to-register :magit-fullscreen)
-  (apply orig-fun args)
-  (delete-other-windows))
+;; Load transient manually first
+(straight-use-package 'transient)
+(require 'transient)
+
+;; Load magit after transient is confirmed working
+(straight-use-package 'magit)
 
 (use-package magit
   :bind
   ("<f5>" . magit-status)
   ("<f6>" . magit-blame-addition)
+  :custom
+  (magit-diff-refine-hunk t)              ; Better diff highlighting
+  (magit-save-repository-buffers 'dontask) ; Don't ask to save buffers
+  (magit-refresh-status-buffer nil)        ; Don't auto-refresh for performance
   :config
-  (progn
-   ;; Make magit status run fullscreen
-   (advice-add 'magit-status :around #'magit-status-fullscreen)
-  
-   (defun magit-quit-session ()
-     "Restore the previous window configuration and kill the magit buffer."
-     (interactive)
-     (kill-buffer)
-     (jump-to-register :magit-fullscreen))))
+  ;; Make magit status run fullscreen
+  (advice-add 'magit-status :around #'magit-status-fullscreen))
 
 ;;; =====================================================================
 ;;; Terminal and Shell
@@ -917,69 +907,90 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
 		   (reusable-frames . visible)
 		   (window-height . 0.3))))
   :config
-  (setq vterm-buffer-name-string "vterm %s")
-  ;; Set terminal environment variable to improve compatibility
-  ;; Use a more modern terminal type that better supports Unicode and colors
-  (setq vterm-term-environment-variable "xterm-direct")
+  (setq vterm-buffer-name-string "vterm %s"))
   
-  ;; Fix font configuration for vterm
-  (custom-set-faces
-   '(vterm-color-default ((t (:inherit default :family "DejaVu Sans Mono")))))
   
-  ;; Comprehensive vterm setup for proper Unicode and box drawing
-  (add-hook 'vterm-mode-hook
-            (lambda ()
-              ;; Better box drawing with specific font and no line spacing
-              (setq-local line-spacing 0)
-              )))
-
 ;; VTerm Toggle - Quickly toggle terminal window
 (use-package vterm-toggle
+  :after vterm
+  :bind (("C-`" . vterm-toggle))
   :config
   (setq vterm-toggle-fullscreen-p nil))
 
-;; Use-package-chords - Key-chord integration for use-package
-(use-package use-package-chords
-  :config (key-chord-mode 1)
-  (key-chord-define-global "``" 'vterm-toggle))
+;; Eat - Fast terminal emulator implemented in Emacs Lisp
+(straight-use-package
+ '(eat :type git
+       :host codeberg
+       :repo "akib/emacs-eat"
+       :files ("*.el" ("term" "term/*.el") "*.texi"
+               "*.ti" ("terminfo/e" "terminfo/e/*")
+               ("terminfo/65" "terminfo/65/*")
+               ("integration" "integration/*")
+               (:exclude ".dir-locals.el" "*-tests.el"))))
 
-;;; =====================================================================
-;;; Window and Buffer Management
-;;; =====================================================================
-
-;; Popwin - Popup window manager
-(use-package popwin
-  :config
-  (progn
-    (push "*Compile-Log*" popwin:special-display-config)
-    (setq popwin:close-popup-window-timer-interval 0.5)
-    (setq popwin:popup-window-position 'bottom)
-    (popwin-mode 1))
-  :bind-keymap
-  ("C-z" . popwin:keymap))
 
 ;;; =====================================================================
 ;;; Language-specific Modes
 ;;; =====================================================================
 
 ;; Go Mode - Major mode for Go programming language
-(use-package go-mode)
+(use-package go-mode
+  :defer t)
 
 ;; YAML Mode - Major mode for YAML files
 (use-package yaml-mode
+  :defer t
   :hook (yaml-mode . display-line-numbers-mode))
 
 ;; YAML Pro - Enhanced YAML editing
-(use-package yaml-pro)
+(use-package yaml-pro
+  :defer t)
 
 ;; Dockerfile Mode - Major mode for Docker files
-(use-package dockerfile-mode)
+(use-package dockerfile-mode
+  :defer t)
 
 ;; Docker Compose Mode - Major mode for docker-compose files
-(use-package docker-compose-mode)
+(use-package docker-compose-mode
+  :defer t)
 
 ;; CloudFormation files - Using yaml-mode for CloudFormation templates
 (add-to-list 'auto-mode-alist '("infrastructure/.*\\.yml$" . yaml-mode))
+
+;;; =====================================================================
+;;; Additional Helpful Packages
+;;; =====================================================================
+
+;; Helpful - Better help buffers
+(use-package helpful
+  :defer t
+  :bind (("C-h f" . helpful-callable)
+         ("C-h v" . helpful-variable)
+         ("C-h k" . helpful-key)
+         ("C-h F" . helpful-function)
+         ("C-h C" . helpful-command)))
+
+;; Rainbow delimiters - Colorize matching parentheses
+(use-package rainbow-delimiters
+  :defer t
+  :hook (prog-mode . rainbow-delimiters-mode))
+
+;; ESUP - Emacs Start Up Profiler
+(use-package esup
+  :defer t
+  :commands esup)
+
+;;; =====================================================================
+;;; Keybindings (Consolidated)
+;;; =====================================================================
+
+;; Tree-sitter navigation (non-conflicting)
+(with-eval-after-load 'treesit
+  (bind-keys*
+   ("C-M-n" . treesit-end-of-defun)
+   ("C-M-p" . treesit-beginning-of-defun)
+   ("C-M-d" . treesit-beginning-of-thing)
+   ("C-M-u" . treesit-end-of-thing)))
 
 ;;; =====================================================================
 ;;; Custom Settings
