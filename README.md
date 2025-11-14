@@ -1,15 +1,12 @@
 # Emacs Configuration
 
-> A high-performance Emacs 30.1 configuration with 80+ packages, native compilation, Tree-sitter support, and AI integration for modern software development.
+> A high-performance Emacs 30.1 configuration with 54+ packages, native compilation, Tree-sitter support, and AI integration for modern software development.
 
 ## 🚀 Quick Start
 
 ```bash
 # Clone configuration
 git clone https://github.com/<your-username>/.emacs.d.git ~/.emacs.d
-
-# Set required environment variables
-export OPENAI_API_KEY="sk-..."  # For ChatGPT Shell
 
 # Install required tools (macOS)
 brew install ripgrep gcc libgccjit cmake
@@ -23,9 +20,9 @@ emacs
 A meticulously optimized Emacs configuration leveraging Emacs 30.1's cutting-edge features:
 
 ### Configuration Architecture
-- **`early-init.el`** (68 lines): Startup optimizations, GC tuning, native compilation setup
-- **`init.el`** (1050+ lines): Main configuration with 85+ packages in 12 logical sections
-- **`custom.el`**: Auto-generated customizations and theme settings
+- **`early-init.el`** (67 lines): Startup optimizations, GC tuning, native compilation setup
+- **`init.el`** (1004 lines): Main configuration with 54+ packages in 11 logical sections
+- **`custom.el`**: Auto-generated customizations and theme settings (created on first save)
 - **`site-lisp/utilities/`**: 14 custom utility functions for enhanced productivity
 
 ### Package Management
@@ -57,9 +54,7 @@ A meticulously optimized Emacs configuration leveraging Emacs 30.1's cutting-edg
 - **VTerm**: Full terminal emulator with smart toggle
 
 ### 🤖 AI Integration
-- **ChatGPT Shell**: OpenAI GPT integration
-- **GitHub Copilot**: AI pair programming
-- **Claude Shell**: Claude API integration
+- **Claude Code IDE**: Claude API integration for in-editor assistance
 - **Custom Context Function**: Smart project context for Claude Code
 
 ### 📁 Project & Navigation
@@ -114,13 +109,7 @@ A meticulously optimized Emacs configuration leveraging Emacs 30.1's cutting-edg
    git clone https://github.com/<your-username>/.emacs.d.git ~/.emacs.d
    ```
 
-2. **Set up** environment variables (e.g. for ChatGPT Shell):
-
-   ```bash
-   export OPENAI_API_KEY="sk-..."
-   ```
-
-3. **Launch** Emacs. On first run, `use-package` will install missing packages automatically.
+2. **Launch** Emacs. On first run, `use-package` will install missing packages automatically.
 
 ## 📋 Requirements
 
@@ -196,8 +185,7 @@ Tree-sitter and LSP support for:
 | Key | Function |
 |-----|----------|
 | `C-c C-k` | Claude Code with Context |
-| `C-c g s` | ChatGPT Shell |
-| `C-c g d` | ChatGPT Describe Code |
+| `C-c c` | Claude Code IDE Menu |
 
 ### Window Management
 | Key | Function |
@@ -239,7 +227,6 @@ emacs --debug-init
 ## 📚 Documentation
 
 - **[CLAUDE.md](CLAUDE.md)**: Comprehensive guide for Claude Code AI assistant
-- **[GEMINI.md](GEMINI.md)**: Guide for Gemini-based AI tools
 - **Custom utilities**: See `site-lisp/utilities/utilities.el` for helper functions
 
 ## 🤝 Contributing

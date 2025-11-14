@@ -7,28 +7,27 @@ This file provides comprehensive guidance to Claude Code (claude.ai/code) when w
 This is a performance-optimized Emacs 30.1 configuration with the following structure:
 
 ### Core Configuration Files
-- **`early-init.el`** (68 lines): Startup optimizations, GC tuning, native compilation setup, UI element early disabling
-- **`init.el`** (993 lines): Main configuration with 80+ packages organized into 11 logical sections
-- **`custom.el`**: User interface customizations, theme settings, and auto-generated custom variables
-- **`GEMINI.md`**: Alternative AI assistant guidance for Gemini-based tools
+- **`early-init.el`** (67 lines): Startup optimizations, GC tuning, native compilation setup, UI element early disabling
+- **`init.el`** (1004 lines): Main configuration with 54+ packages organized into 11 logical sections
+- **`custom.el`**: User interface customizations, theme settings, and auto-generated custom variables (created automatically on first customization)
 
 ### Directory Structure
 ```
 ~/.emacs.d/
 ├── early-init.el          # Startup optimizations
 ├── init.el                # Main configuration
-├── custom.el              # UI customizations
-├── compile-init.el        # Byte compilation helper
+├── custom.el              # UI customizations (auto-generated)
+├── CLAUDE.md              # AI assistant guidance
+├── README.md              # User documentation
 ├── site-lisp/
-│   ├── utilities/
-│   │   └── utilities.el   # 14 custom utility functions
-│   └── themes/
-│       └── nordic-night-theme.el
+│   └── utilities/
+│       └── utilities.el   # 14 custom utility functions
+├── logo/                  # Dashboard logo images
 ├── straight/              # Straight.el package manager cache
-├── eln-cache/            # Native compilation cache
-├── elpa/                 # ELPA packages
-├── transient/            # Transient state files
-└── backups/              # Backup files directory
+├── eln-cache/             # Native compilation cache
+├── elpa/                  # ELPA packages
+├── transient/             # Transient state files
+└── backups/               # Backup files directory
 ```
 
 ## Package Management Strategy
@@ -73,7 +72,7 @@ The `init.el` is organized into these sections with line numbers:
    - VTerm with toggle functionality
 10. **Window and Buffer Management** (lines 889-900)
     - Projectile, Deadgrep, Ace-window
-11. **Language-specific Modes** (lines 901-993)
+11. **Language-specific Modes** (lines 901-1004)
     - Go, YAML, Docker, Markdown, Web, JSON, TypeScript
 
 ## Complete Package Inventory
@@ -108,13 +107,11 @@ The `init.el` is organized into these sections with line numbers:
 
 ### Development Tools
 - **eglot**: Built-in LSP client (enhanced for Emacs 30.1)
-- **treesit**: Built-in Tree-sitter support (15 languages configured)
+- **treesit**: Built-in Tree-sitter support (17 languages configured)
 - **flycheck**: Syntax checking framework
 - **flycheck-pos-tip**: Tooltips for flycheck errors
 - **editorconfig**: EditorConfig support
-- **chatgpt-shell**: OpenAI API integration
-- **copilot**: GitHub Copilot integration
-- **claude-shell**: Claude API integration (via straight.el)
+- **claude-code-ide**: Claude Code IDE integration (via straight.el)
 
 ### Version Control
 - **magit**: Advanced Git interface
@@ -239,10 +236,8 @@ The `init.el` is organized into these sections with line numbers:
 - `C-x o`: Other window
 
 ### AI Assistants
-- `C-c g`: ChatGPT Shell prefix
-- `C-c g s`: ChatGPT Shell
-- `C-c g d`: ChatGPT describe code
-- Claude Shell: Various `C-c c` prefixes
+- `C-c C-k`: Claude Code with context
+- `C-c c`: Claude Code IDE menu
 
 ## Key Technologies
 
@@ -351,8 +346,7 @@ Automatic remapping configured via `major-mode-remap-alist`:
 ## Environment Setup
 
 ### Required Environment Variables
-- **`OPENAI_API_KEY`**: For ChatGPT Shell functionality
-- **`PATH`**: Must include locations of external tools
+- **`PATH`**: Must include locations of external tools (language servers, ripgrep, etc.)
 
 ### External Dependencies
 - **Required**:
