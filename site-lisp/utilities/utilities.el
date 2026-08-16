@@ -1,4 +1,4 @@
-;;; package --- Summary
+;;; utilities.el --- Personal utility commands -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;;; This is a handfull of my utilities
 ;;; Code:
@@ -48,16 +48,21 @@ If a region is active, duplicate the region. Otherwise, duplicate the current li
 With prefix argument N, make N copies of the line or region.
 If N is negative, comment out the original line and use the absolute value of N."
   (interactive "*p")
-  (let ((use-region (use-region-p)))
+  (setq n (or n 1))
+  (let* ((use-region (use-region-p))
+         (region-start (and use-region (region-beginning)))
+         (region-end (and use-region (region-end))))
     (save-excursion
-      (let ((text (if use-region        ;Get region if active, otherwise line
-		      (buffer-substring (region-beginning) (region-end))
-		    (prog1 (thing-at-point 'line)
-		      (end-of-line)
-		      (if (< 0 (forward-line 1)) ;Go to beginning of next line, or make a new one
-			  (newline))))))
-	(dotimes (i (abs (or n 1)))     ;Insert N times, or once if not specified
-	  (insert text))))
+      (let ((text (if use-region
+                      (buffer-substring region-start region-end)
+                    (prog1 (thing-at-point 'line)
+                      (end-of-line)
+                      (when (< 0 (forward-line 1))
+                        (newline))))))
+        (when use-region
+          (goto-char region-end))
+        (dotimes (_ (abs n))
+          (insert text))))
     (if use-region nil                  ;Only if we're working with a line (not a region)
       (let ((pos (- (point) (line-beginning-position)))) ;Save column
 	(if (> 0 n)                             ;Comment out original with negative arg
@@ -178,10 +183,10 @@ Generates a comprehensive context message including:
 - Open buffers and their purposes
 - Current configuration state"
   (interactive)
-  (let* ((project-root (or (and (fboundp 'project-current)
-                                (project-current)
-                                (project-root (project-current)))
-                           default-directory))
+  (let* ((project (and (fboundp 'project-current) (project-current)))
+         (project-root (if project (project-root project) default-directory))
+         (origin-file buffer-file-name)
+         (origin-mode major-mode)
          (context-buffer "*Claude Context*"))
     
     ;; Generate context in a temporary buffer
@@ -192,11 +197,11 @@ Generates a comprehensive context message including:
       ;; Current project info
       (insert "## Current Project\n")
       (insert (format "- Root: %s\n" project-root))
-      (insert (format "- Current file: %s\n" (or buffer-file-name "No file")))
-      (insert (format "- Major mode: %s\n\n" major-mode))
+      (insert (format "- Current file: %s\n" (or origin-file "No file")))
+      (insert (format "- Major mode: %s\n\n" origin-mode))
       
       ;; Git status
-      (when (file-exists-p (expand-file-name ".git" project-root))
+      (when (locate-dominating-file project-root ".git")
         (insert "## Git Status\n")
         (insert "```\n")
         (let ((default-directory project-root))
@@ -240,9 +245,9 @@ Generates a comprehensive context message including:
         (goto-char (point-min))
         (message "Project context copied to clipboard! Paste it when starting Claude Code.")))
     
-    ;; Start Claude Code if available
-    (when (fboundp 'claude-code-start)
-      (claude-code-start))))
+    ;; Open the configured Claude Code menu if available.
+    (when (fboundp 'claude-code-ide-menu)
+      (call-interactively #'claude-code-ide-menu))))
 
 (provide 'utilities)
 ;;; utilities.el ends here
