@@ -1,10 +1,24 @@
 ;;; init.el --- Personal Emacs configuration -*- lexical-binding: t -*-
 ;;; Commentary:
 ;;; Code:
-
 ;;; =====================================================================
 ;;; Function Definitions (must come first)
 ;;; =====================================================================
+
+(eval-and-compile
+  (defvar dashboard-vertically-center-content)
+  (defvar eglot-events-buffer-config)
+  (defvar org-roam-dailies-capture-templates)
+  (defvar org-roam-dailies-directory)
+  (defvar pixel-scroll-precision-initial-velocity-factor)
+  (defvar pixel-scroll-precision-interpolate-page)
+  (defvar pixel-scroll-precision-interpolation-factor)
+  (defvar pixel-scroll-precision-large-scroll-height)
+  (defvar pixel-scroll-precision-use-momentum)
+  (defvar treesit-language-source-alist))
+
+(declare-function treesit-ready-p "treesit")
+(declare-function dashboard-modify-heading-icons "dashboard-widgets")
 
 (defun is-in-terminal()
   "Will let you know if you are in a terminal session."
@@ -35,58 +49,43 @@ Otherwise returns nil."
          (vterm-buffer-name (project-prefixed-buffer-name "vterm")))
     (vterm)))
 
-(defun safe-install-grammar (lang)
-  "Safely install tree-sitter grammar with retry logic."
-  (unless (treesit-language-available-p lang)
-    (let ((max-retries 3))
-      (cl-loop repeat max-retries
-               for attempt from 1
-               do (condition-case err
-                      (progn 
-                        (message "Installing tree-sitter grammar for %s (attempt %d)" lang attempt)
-                        (treesit-install-language-grammar lang)
-                        (cl-return t))
-                    (error (message "Failed attempt %d for %s: %s" attempt lang err)))))))
+(defun mr/text-scale-reset ()
+  "Restore the current buffer's default text scale."
+  (interactive)
+  (text-scale-set 0))
+
+(defun mr/yaml-eglot-ensure ()
+  "Start the appropriate YAML language server when it is installed."
+  (cond
+   ((and buffer-file-name
+         (string-match-p "/infrastructure/.*\\.ya?ml\\'" buffer-file-name)
+         (executable-find "cfn-lsp-extra"))
+    (setq-local eglot-server-programs
+                (cons `((,major-mode) . ("cfn-lsp-extra"))
+                      eglot-server-programs))
+    (eglot-ensure))
+   ((executable-find "yaml-language-server")
+    (eglot-ensure))))
+
+(defun mr/treesit-install-grammars ()
+  "Install each missing grammar in `treesit-language-source-alist'."
+  (interactive)
+  (require 'treesit)
+  (dolist (source treesit-language-source-alist)
+    (let ((language (car source)))
+      (unless (treesit-ready-p language t)
+        (condition-case err
+            (treesit-install-language-grammar language)
+          (error
+           (message "Could not install %s grammar: %s"
+                    language (error-message-string err)))))))
+  (message "Tree-sitter grammar installation finished; restart Emacs to update mode remapping"))
 
 ;;; =====================================================================
 ;;; Basic Setup and Package Management
 ;;; =====================================================================
 
-;; Set a dedicated native-comp cache directory
-(when (featurep 'native-compile)
-  (add-to-list 'native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory)))
-
-;; Declare external function to silence compiler warning
-(declare-function straight-use-package "straight" (package &optional no-clone no-build))
-
-;; Define variables before use to avoid free variable warnings
-(defvar straight-use-package-by-default nil
-  "When non-nil, make `use-package' use straight.el by default.")
-
-;; straight.el package manager bootstrap with error handling
-(defvar bootstrap-version)
-(let ((bootstrap-file
-       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-      (bootstrap-version 6))
-  (unless (file-exists-p bootstrap-file)
-    (with-current-buffer
-        (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-         'silent 'inhibit-cookies)
-      (goto-char (point-max))
-      (eval-print-last-sexp)))
-  (condition-case err
-      (load bootstrap-file nil 'nomessage)
-    (error (message "Failed to bootstrap straight.el: %s" err))))
-
-;; Configure straight.el to use use-package
-(straight-use-package 'use-package)
-(setq straight-use-package-by-default nil)  ;; Don't use straight for all packages by default
-
-;; Package management setup
-;; Prevent package.el from auto-initializing; we handle it manually
-(setq package-enable-at-startup nil)
-
+;; Use package.el for archives and package-vc through use-package's `:vc'.
 (require 'package)
 ;; Setup package archives
 (setq package-archives
@@ -100,7 +99,10 @@ Otherwise returns nil."
         ("melpa" . 0)))
 (package-initialize)
 
-;; Use built-in use-package for cleaner package configurations
+;; Assign this before packages have a chance to write Custom settings.
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+
+;; use-package is built into Emacs 29 and later.
 (require 'use-package)
 (eval-and-compile
  ;; Silence native-compiler warnings for external doom-themes functions
@@ -122,45 +124,43 @@ Otherwise returns nil."
         gcmh-low-cons-threshold (* 16 1024 1024)   ;; 16MB minimum
         gcmh-verbose nil))
 
-;; Byte compile lisp
-(add-hook 'emacs-lisp-mode-hook
-          (lambda ()
-            (add-hook 'after-save-hook #'emacs-lisp-byte-compile nil 'local)))
-
 ;; Enable server for opening file/folder from emacsclient
-(server-start)
+(require 'server)
+(unless (server-running-p)
+  (server-start))
 
 ;; Enable a nice launch Dashboard for Emacs
 (use-package dashboard
   :ensure t
   :config
   (dashboard-setup-startup-hook)
-  
+
   ;; Set the banner to your custom logo
   (setq dashboard-startup-banner "~/.emacs.d/logo/Nuvola_apps_emacs_vector2.png")
 
-  
+
   ;; Content is centered
   (setq dashboard-center-content t)
   (setq dashboard-vertically-center-content t)
-  
+
   ;; Configure dashboard items
   (setq dashboard-items '((recents  . 5)
                           (projects . 8)
                           (bookmarks . 5)))
-  
+
+  ;; Configure dashboard to use project.el instead of projectile
+  (setq dashboard-projects-backend 'project-el)
+
   ;; Display icons
   (setq dashboard-display-icons-p t)
   (setq dashboard-icon-type 'nerd-icons)
   (setq dashboard-set-heading-icons t)
   (setq dashboard-set-file-icons t)
-  
+
   ;; Set the icons for dashboard items using the correct function
   (dashboard-modify-heading-icons '((recents   . "nf-oct-history")
                                     (bookmarks . "nf-oct-book")
-                                    (projects  . "nf-oct-rocket")))
-
-  )
+                                    (projects  . "nf-oct-rocket"))))
 
 
 ;;; =====================================================================
@@ -179,19 +179,23 @@ Otherwise returns nil."
 ;; no menu-bar-mode
 ;; (menu-bar-mode -1)
 
-;; Enhanced backup strategy optimized for performance
-(setq backup-directory-alist '(("." . "~/.emacs.d/backups"))
-      auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t))
-      backup-by-copying t
+;; Keep potentially sensitive backups out of the configuration repository.
+(let* ((state-home (or (getenv "XDG_STATE_HOME")
+                       (expand-file-name "~/.local/state/")))
+       (backup-dir (expand-file-name "emacs/backups/" state-home))
+       (auto-save-dir (expand-file-name "emacs/auto-save/" state-home)))
+  (make-directory backup-dir t)
+  (make-directory auto-save-dir t)
+  (setq backup-directory-alist `(("." . ,backup-dir))
+        auto-save-file-name-transforms `((".*" ,auto-save-dir t))))
+(setq backup-by-copying t
       delete-old-versions t
       kept-new-versions 6
       kept-old-versions 2
       version-control t
-      remote-file-name-inhibit-locks t  ; Faster remote file operations
-      create-lockfiles nil              ; Disable lock files for better performance
-      auto-save-default t               ; Keep auto-save enabled
-      auto-save-timeout 20              ; Seconds idle before auto-save (increased)
-      auto-save-interval 200)           ; Keystrokes before auto-save (increased)
+      auto-save-default t
+      auto-save-timeout 20
+      auto-save-interval 200)
 
 ;; delete files by moving them to the OS X trash
 (setq delete-by-moving-to-trash t)
@@ -227,10 +231,9 @@ Otherwise returns nil."
 (setq auto-mode-case-fold nil)                 ; Speed up file opening by disabling case folding
 (setq frame-resize-pixelwise t)                ; Smoother frame resizing
 
-;; New Emacs 30.1 features
-(setq long-line-optimizations-mode t)          ; Better handling of files with long lines
-(setq image-scaling-factor 'auto)              ; Improved image rendering
-(setq completion-lazy-hilit t)                 ; Lazy highlighting in completions
+;; Emacs 30 display and completion behavior.
+(setq image-scaling-factor 'auto
+      completion-lazy-hilit t)
 
 ;; use line numbers in programming modes
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
@@ -306,7 +309,7 @@ Otherwise returns nil."
     "If nil, bold is universally disabled.")
   (defvar doom-themes-enable-italic t
     "If nil, italics is universally disabled.")
-  
+
   (setq doom-themes-enable-bold t
 	doom-themes-enable-italic t)
 
@@ -349,10 +352,9 @@ Otherwise returns nil."
 ;; Standardize on nerd-icons
 (use-package nerd-icons
   :config
-  ;; Install fonts if they don't exist
+  ;; Font installation is intentionally explicit rather than a startup side effect.
   (unless (find-font (font-spec :name "Symbols Nerd Font Mono"))
-    (nerd-icons-install-fonts t))
-  )
+    (message "Nerd Icons font missing; run M-x nerd-icons-install-fonts")))
 
 ;; Nerd Icons Completion - Show icons in completion UI
 (use-package nerd-icons-completion
@@ -415,7 +417,7 @@ Otherwise returns nil."
   ;; Declare Corfu functions to silence compiler warnings
   (declare-function corfu-next "corfu")
   (declare-function corfu-previous "corfu")
-  
+
   (global-corfu-mode)
   :custom
   (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous`
@@ -425,14 +427,14 @@ Otherwise returns nil."
   (corfu-separator ?\s)          ;; Use space as separator
   (corfu-quit-at-boundary nil)   ;; Don't quit at boundary
   (corfu-quit-no-match t)        ;; Quit when no match
-  (corfu-echo-documentation 0.25)     ;; Show documentation quickly
   (corfu-preview-current nil)    ;; Disable current candidate preview
   (corfu-preselect 'prompt)      ;; Preselect prompt
+  (corfu-popupinfo-delay '(1.0 . 0.5))
   :config
+  (corfu-popupinfo-mode 1)
   ;; TAB-and-Go customizations
-  (with-eval-after-load 'corfu
-    (define-key corfu-map (kbd "TAB") 'corfu-next)
-    (define-key corfu-map (kbd "S-TAB") 'corfu-previous)))
+  (define-key corfu-map (kbd "TAB") #'corfu-next)
+  (define-key corfu-map (kbd "S-TAB") #'corfu-previous))
 
 ;; Cape - Completion At Point Extensions
 (use-package cape
@@ -444,7 +446,7 @@ Otherwise returns nil."
   (declare-function cape-keyword "cape")
   (declare-function cape-wrap-silent "cape")
   (declare-function cape-wrap-noninteractive "cape")
-  
+
   ;; Add useful completion sources
   (add-to-list 'completion-at-point-functions #'cape-file)
   (add-to-list 'completion-at-point-functions #'cape-dabbrev)
@@ -452,28 +454,16 @@ Otherwise returns nil."
   (with-eval-after-load 'cape
     ;; Add cape-keyword after cape is loaded
     (add-to-list 'completion-at-point-functions #'cape-keyword)
-    
+
     ;; Silence the pcomplete capf, no errors or messages!
     (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-silent)
-    
+
     ;; Ensure case-sensitivity for file completion
     (advice-add 'comint-completion-at-point :around #'cape-wrap-noninteractive)))
 
 
 ;; Consult - Additional search and navigation commands
 (use-package consult
-  :init
-  ;; Use consult-fd if fd is available, otherwise use consult-find
-  (defvar consult-find-command)
-  (defvar consult-fd-command)
-  (when (executable-find "fd")
-    (setq consult-fd-args '("--color=never" "--full-path")))
-  
-  ;; Configure ripgrep command for consult-ripgrep
-  (defvar consult-ripgrep-command)
-  (when (executable-find "rg")
-    (setq consult-ripgrep-command 
-          "rg --null --line-buffered --color=never --max-columns=1000 --path-separator / --smart-case --no-heading --line-number . -e %s"))
   :bind
   (("C-s" . consult-line)
    ("C-x b" . consult-buffer)
@@ -497,7 +487,9 @@ Otherwise returns nil."
   (setq avy-style 'at-full))
 
 ;; Treemacs - Tree layout file explorer
+(declare-function my/treemacs-setup-font "init")
 (declare-function treemacs-filewatch-mode "treemacs")
+(declare-function treemacs-follow-mode "treemacs")
 (declare-function treemacs-fringe-indicator-mode "treemacs")
 (declare-function treemacs-git-mode "treemacs")
 (declare-function treemacs-hide-gitignored-files-mode "treemacs")
@@ -507,7 +499,7 @@ Otherwise returns nil."
 (use-package treemacs
   :ensure t
   :defer t
-  :commands (treemacs treemacs-display-current-project-exclusively)
+  :commands (treemacs treemacs-add-and-display-current-project-exclusively)
   :bind (("s-\\" . treemacs))
   :init
   (with-eval-after-load 'winum
@@ -520,9 +512,9 @@ Otherwise returns nil."
       "Configure Treemacs font."
       (setq-local buffer-face-mode-face '(:family "PT Mono" :height 110))
       (buffer-face-mode 1))
-    
+
     (add-hook 'treemacs-mode-hook #'my/treemacs-setup-font)
-    
+
     (treemacs-filewatch-mode t)
     (treemacs-fringe-indicator-mode 'always)
     (treemacs-follow-mode t)  ;; Follow current file
@@ -547,22 +539,9 @@ Otherwise returns nil."
 	("C-x t C-t" . treemacs-find-file)
 	("C-x t M-t" . treemacs-find-tag)))
 
-;; Treemacs Projectile - Integration between Treemacs and Projectile
-(use-package treemacs-projectile
-  :after (treemacs projectile))
-
-;; Treemacs Icons Dired - DISABLED to prevent double icons with nerd-icons-dired
-;; (use-package treemacs-icons-dired
-;;   :hook (dired-mode . treemacs-icons-dired-enable-once))
-
 ;; Treemacs Magit - Integration between Treemacs and Magit
 (use-package treemacs-magit
   :after (treemacs magit))
-
-;; Treemacs Persp - Integration between Treemacs and Perspective
-(use-package treemacs-persp
-  :after (treemacs persp-mode)
-  :config (treemacs-set-scope-type 'Perspectives))
 
 ;; Treemacs Tab Bar - Integration between Treemacs and Tab Bar
 (use-package treemacs-tab-bar
@@ -602,9 +581,7 @@ Otherwise returns nil."
 
 ;; Whitespace-cleanup-mode - Automatically clean whitespace
 (use-package whitespace-cleanup-mode
-  :init
-  (progn
-    (global-whitespace-cleanup-mode t)))
+  :hook (prog-mode . whitespace-cleanup-mode))
 
 ;; Undo-fu - Enhanced undo/redo functionality
 (use-package undo-fu
@@ -630,26 +607,25 @@ Otherwise returns nil."
   :config
   (persistent-scratch-setup-default))
 
-;; Deft - Quick note taking and searching
-(use-package deft
-  :bind
-  ("C-c n" . deft)
-  :config
-  (setq deft-extensions '("txt"))
-  (setq deft-directory "/Users/mranallo/Library/Mobile Documents/iCloud~co~noteplan~NotePlan/Documents/Notes/")
-  (setq deft-auto-save-interval 0.0))
+;; ;; Deft - Quick note taking and searching
+;; (use-package deft
+;;   :bind
+;;   ("C-c n" . deft)
+;;   :config
+;;   (setq deft-extensions '("txt"))
+;;   (setq deft-directory "/Users/mranallo/Library/Mobile Documents/iCloud~co~noteplan~NotePlan/Documents/Notes/")
+;;   (setq deft-auto-save-interval 0.0))
 
 ;; Ligature - Support for programming ligatures
-(when (fboundp 'global-ligature-mode)
-  (use-package ligature
-    :config
-    ;; Enable the "www" ligature in every possible major mode
-    (ligature-set-ligatures 't '("www"))
-    ;; Enable traditional ligature support in eww-mode, if the
-    ;; `variable-pitch' face supports it
-    (ligature-set-ligatures 'eww-mode '("ff" "fi" "ffi"))
-    ;; Enable all Cascadia Code ligatures in programming modes
-    (ligature-set-ligatures 'prog-mode '("|||>" "<|||" "<==>" "<!--" "####" "~~>" "***" "||=" "||>"
+(use-package ligature
+  :config
+  ;; Enable the "www" ligature in every possible major mode
+  (ligature-set-ligatures 't '("www"))
+  ;; Enable traditional ligature support in eww-mode, if the
+  ;; `variable-pitch' face supports it
+  (ligature-set-ligatures 'eww-mode '("ff" "fi" "ffi"))
+  ;; Enable all Cascadia Code ligatures in programming modes
+  (ligature-set-ligatures 'prog-mode '("|||>" "<|||" "<==>" "<!--" "####" "~~>" "***" "||=" "||>"
                                          ":::" "::=" "=:=" "===" "==>" "=!=" "=>>" "=<<" "=/=" "!=="
                                          "!!." ">=>" ">>=" ">>>" ">>-" ">->" "->>" "-->" "---" "-<<"
                                          "<~~" "<~>" "<*>" "<||" "<|>" "<$>" "<==" "<=>" "<=<" "<->"
@@ -661,9 +637,8 @@ Otherwise returns nil."
                                          "<$" "<=" "<>" "<-" "<<" "<+" "</" "#{" "#[" "#:" "#=" "#!"
                                          "##" "#(" "#?" "#_" "%%" ".=" ".-" ".." ".?" "+>" "++" "?:"
                                          "?=" "?." "??" ";;" "/*" "/=" "/>" "//" "__" "~~" "(*" "*)"
-                                         "\\\\" "://"))
-    ;; Enables ligature checks globally in all buffers
-    (global-ligature-mode t)))
+                                       "\\\\" "://"))
+  (global-ligature-mode t))
 
 ;;; =====================================================================
 ;;; Development Tools
@@ -676,40 +651,13 @@ Otherwise returns nil."
   (setq exec-path-from-shell-variables '("PATH" "GOPATH" "MANPATH"))
   (exec-path-from-shell-initialize))
 
-;; Flycheck - Syntax checking
-(use-package flycheck
-  :defer t
-  :init (global-flycheck-mode))
-
-;; Flycheck-pos-tip - Show flycheck errors in tooltip
-(use-package flycheck-pos-tip
-  :defer t
-  :config
-  (with-eval-after-load 'flycheck (flycheck-pos-tip-mode)))
-
-;; Define custom CloudFormation linter once Flycheck is loaded
-(with-eval-after-load 'flycheck
-  (flycheck-define-checker cfn-lint
-    "A CloudFormation linter using cfn-python-lint.
-See URL 'https://github.com/aws-cloudformation/cfn-lint'."
-    :command ("cfn-lint" "-f" "parseable" source)
-    :error-patterns
-    ((warning line-start (file-name) ":" line ":" column
-              ":" (one-or-more digit) ":" (one-or-more digit) ":"
-              (id "W" (one-or-more digit)) ":" (message) line-end)
-     (error line-start (file-name) ":" line ":" column
-            ":" (one-or-more digit) ":" (one-or-more digit) ":"
-            (id "E" (one-or-more digit)) ":" (message) line-end))
-    :modes 'yaml-mode)
-  (add-to-list 'flycheck-checkers 'cfn-lint))
-
-;; Enhanced Eglot configuration for Emacs 30.1
+;; Eglot uses the built-in Flymake diagnostic frontend.
 (use-package eglot
   :ensure nil  ;; built-in
   :hook
   ;; Hook into all tree-sitter modes
   ((go-mode go-ts-mode) . eglot-ensure)
-  ((yaml-mode yaml-ts-mode) . eglot-ensure)
+  ((yaml-mode yaml-ts-mode) . mr/yaml-eglot-ensure)
   ((dockerfile-mode dockerfile-ts-mode) . eglot-ensure)
   ((js-mode js-ts-mode) . eglot-ensure)
   ((typescript-mode typescript-ts-mode tsx-ts-mode) . eglot-ensure)
@@ -721,33 +669,24 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
   ;; Performance optimizations for Emacs 30.1
   (setq eglot-autoshutdown t)
   (setq eglot-sync-connect 1)  ; Improved in Emacs 30.1 with native JSON
-  (setq eglot-events-buffer-size 0)
+  (setq eglot-events-buffer-config '(:size 0 :format full))
   (setq eglot-extend-to-xref t)
-  
+
   ;; Reduce network traffic and improve performance
   (setq eglot-connect-timeout 30)
   (setq eglot-send-changes-idle-time 0.5)
-  
-  ;; Disable automatic highlighting to improve performance
-  (setq eglot-highlight-symbol-face nil)
-  
+
   ;; Improve code completion and performance
-  (setq eglot-ignored-server-capabilities 
-        '(:documentHighlightProvider 
+  (setq eglot-ignored-server-capabilities
+        '(:documentHighlightProvider
           :documentOnTypeFormattingProvider
           :inlayHintProvider))  ; Disable inlay hints for performance
-  
-  ;; Language servers configuration
-  (add-to-list 'eglot-server-programs
-               '((yaml-mode yaml-ts-mode) . ("cfn-lsp-extra")))
-  
-  ;; Enable snippet expansion with corfu
-  (with-eval-after-load 'corfu
-    (setq eglot-workspace-configuration 
-          `((:yaml . (:format . t))
-            (:go . (:usePlaceholders . t))
-            (:json . (:format . t)))))
-  
+
+  (setq eglot-workspace-configuration
+        '((:yaml . (:format . t))
+          (:go . (:usePlaceholders . t))
+          (:json . (:format . t))))
+
   ;; Keybindings for Eglot features
   :bind (:map eglot-mode-map
          ("C-c l a" . eglot-code-actions)
@@ -759,80 +698,56 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
 (use-package treesit
   :ensure nil  ;; built-in
   :config
-  ;; Define language sources for auto-installation
-  ;; Use git protocol instead of https to avoid authentication issues
+  ;; Grammars are installed explicitly with `mr/treesit-install-grammars'.
   (setq treesit-language-source-alist
-        '((bash "git://github.com/tree-sitter/tree-sitter-bash")
-          (cmake "git://github.com/uyha/tree-sitter-cmake")
-          (css "git://github.com/tree-sitter/tree-sitter-css")
-          (elisp "git://github.com/Wilfred/tree-sitter-elisp")
-          (go "git://github.com/tree-sitter/tree-sitter-go")
-          (html "git://github.com/tree-sitter/tree-sitter-html")
-          (javascript "git://github.com/tree-sitter/tree-sitter-javascript")
-          (json "git://github.com/tree-sitter/tree-sitter-json")
-          (make "git://github.com/alemuller/tree-sitter-make")
-          (markdown "git://github.com/ikatyang/tree-sitter-markdown")
-          (python "git://github.com/tree-sitter/tree-sitter-python")
-          (toml "git://github.com/tree-sitter/tree-sitter-toml")
-          (tsx "git://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-          (typescript "git://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-          (yaml "git://github.com/ikatyang/tree-sitter-yaml")
-          (dockerfile "git://github.com/camdencheek/tree-sitter-dockerfile")
-          (rust "git://github.com/tree-sitter/tree-sitter-rust")))
-  
-  ;; Auto-install missing tree-sitter grammars with better error handling
-  (dolist (grammar treesit-language-source-alist)
-    (let ((lang (car grammar)))
-      (safe-install-grammar lang)))
-  
-  ;; Expanded tree-sitter modes for common languages (Emacs 30.1 optimized)
-  (setq major-mode-remap-alist
-        '((yaml-mode . yaml-ts-mode)
-          (bash-mode . bash-ts-mode)
-          (sh-mode . bash-ts-mode)
-          (js-mode . js-ts-mode)
-          (js-json-mode . json-ts-mode)
-          (typescript-mode . typescript-ts-mode)
-          (json-mode . json-ts-mode)
-          (css-mode . css-ts-mode)
-          (python-mode . python-ts-mode)
-          (go-mode . go-ts-mode)
-          (rust-mode . rust-ts-mode)
-          (c-mode . c-ts-mode)
-          (c++-mode . c++-ts-mode)
-          (java-mode . java-ts-mode)
-          (dockerfile-mode . dockerfile-ts-mode)
-          (html-mode . html-ts-mode)
-          (toml-mode . toml-ts-mode)
-          (xml-mode . xml-ts-mode)))
-  
-  ;; Emacs 30.1 tree-sitter navigation enhancements
-  (defun ts-setup-navigation ()
-    "Set up enhanced tree-sitter navigation."
-    (setq-local forward-sexp-function nil)  ; Use improved built-in sexp navigation
-    (setq-local treesit-thing-settings 
-                '((defun "function_definition" "method_definition" "class_declaration")
-                  (sexp "expression" "statement" "declaration")
-                  (comment "comment")
-                  (string "string" "string_literal" "raw_string_literal"))))
-  
-  ;; Apply navigation enhancements to all tree-sitter modes
-  (dolist (mode '(yaml-ts-mode-hook bash-ts-mode-hook js-ts-mode-hook 
-                  typescript-ts-mode-hook json-ts-mode-hook css-ts-mode-hook
-                  python-ts-mode-hook go-ts-mode-hook rust-ts-mode-hook
-                  c-ts-mode-hook c++-ts-mode-hook java-ts-mode-hook
-                  dockerfile-ts-mode-hook))
-    (add-hook mode #'ts-setup-navigation))
-  
+        '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+          (c "https://github.com/tree-sitter/tree-sitter-c")
+          (cmake "https://github.com/uyha/tree-sitter-cmake")
+          (cpp "https://github.com/tree-sitter/tree-sitter-cpp")
+          (css "https://github.com/tree-sitter/tree-sitter-css")
+          (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
+          (go "https://github.com/tree-sitter/tree-sitter-go")
+          (html "https://github.com/tree-sitter/tree-sitter-html")
+          (java "https://github.com/tree-sitter/tree-sitter-java")
+          (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+          (json "https://github.com/tree-sitter/tree-sitter-json")
+          (python "https://github.com/tree-sitter/tree-sitter-python")
+          (rust "https://github.com/tree-sitter/tree-sitter-rust")
+          (toml "https://github.com/tree-sitter/tree-sitter-toml")
+          (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+          (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+          (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+
+  (dolist (mapping '((yaml yaml-mode yaml-ts-mode)
+                     (bash bash-mode bash-ts-mode)
+                     (bash sh-mode bash-ts-mode)
+                     (javascript js-mode js-ts-mode)
+                     (json js-json-mode json-ts-mode)
+                     (typescript typescript-mode typescript-ts-mode)
+                     (json json-mode json-ts-mode)
+                     (css css-mode css-ts-mode)
+                     (python python-mode python-ts-mode)
+                     (go go-mode go-ts-mode)
+                     (rust rust-mode rust-ts-mode)
+                     (c c-mode c-ts-mode)
+                     (cpp c++-mode c++-ts-mode)
+                     (java java-mode java-ts-mode)
+                     (dockerfile dockerfile-mode dockerfile-ts-mode)
+                     (html html-mode html-ts-mode)
+                     (toml toml-mode toml-ts-mode)))
+    (when (treesit-ready-p (nth 0 mapping) t)
+      (add-to-list 'major-mode-remap-alist
+                   (cons (nth 1 mapping) (nth 2 mapping)))))
+
   ;; Configure tree-sitter font-lock and indentation
   (setq treesit-font-lock-level 4)
-  
+
   ;; Mode-specific configurations
   (add-hook 'yaml-ts-mode-hook
             (lambda ()
               (setq-local indent-tabs-mode nil
                           tab-width 2))))
-  
+
 ;; Tree-sitter navigation keybindings defined later to avoid conflicts
 
 ;; Use Project.el instead of Projectile
@@ -853,38 +768,63 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
         ("v" . project-vterm))
   ("s-t" . project-find-file))
 
-;; Deadgrep - Fast, modern text search using ripgrep
-(use-package deadgrep
-  :bind ("C-c f" . deadgrep))
+;; Window and text-scale command maps use Emacs's native repeat support.
+(use-package ace-window
+  :commands ace-window)
+
+(defvar-keymap mr/window-map
+  :doc "Window management commands."
+  :repeat (:exit (consult-buffer find-file ace-window))
+  "v" #'split-window-right
+  "s" #'split-window-below
+  "d" #'delete-window
+  "o" #'delete-other-windows
+  "b" #'consult-buffer
+  "f" #'find-file
+  "a" #'ace-window
+  "h" #'shrink-window-horizontally
+  "j" #'enlarge-window
+  "k" #'shrink-window
+  "l" #'enlarge-window-horizontally)
+
+(defvar-keymap mr/text-scale-map
+  :doc "Text scaling commands."
+  :repeat t
+  "+" #'text-scale-increase
+  "-" #'text-scale-decrease
+  "0" #'mr/text-scale-reset)
+
+(keymap-global-set "C-c w" mr/window-map)
+(keymap-global-set "C-c z" mr/text-scale-map)
 
 ;;; =====================================================================
 ;;; AI Coding
 ;;; =====================================================================
 (use-package claude-code-ide
-  :straight (:type git :host github :repo "manzaltu/claude-code-ide.el")
+  :vc (:url "https://github.com/manzaltu/claude-code-ide.el" :rev :newest)
   :bind ("C-c c" . claude-code-ide-menu) ; Set your favorite keybinding
   :config
-  (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
+  (claude-code-ide-emacs-tools-setup) ; Optionally enable Emacs MCP tools
+  (setq claude-code-ide-show-claude-window-in-ediff t)
+  (setq claude-code-ide-focus-claude-after-ediff t)
+
+  ;; Use eat instead of vterm
+  ;; (setq claude-code-ide-terminal-backend 'eat)
+
+  (setq claude-code-ide-vterm-anti-flicker t)
+  (setq claude-code-ide-vterm-render-delay 0.05))  ; Increase for smoother but less responsive
+
 
 ;;; =====================================================================
 ;;; Version Control
 ;;; =====================================================================
-
-;; Load transient manually first
-(straight-use-package 'transient)
-(require 'transient)
-
-;; Load magit after transient is confirmed working
-(straight-use-package 'magit)
 
 (use-package magit
   :bind
   ("<f5>" . magit-status)
   ("<f6>" . magit-blame-addition)
   :custom
-  (magit-diff-refine-hunk t)              ; Better diff highlighting
-  (magit-save-repository-buffers 'dontask) ; Don't ask to save buffers
-  (magit-refresh-status-buffer nil)        ; Don't auto-refresh for performance
+  (magit-diff-refine-hunk t)
   :config
   ;; Make magit status run fullscreen
   (advice-add 'magit-status :around #'magit-status-fullscreen))
@@ -908,26 +848,14 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
 		   (window-height . 0.3))))
   :config
   (setq vterm-buffer-name-string "vterm %s"))
-  
-  
+
+
 ;; VTerm Toggle - Quickly toggle terminal window
 (use-package vterm-toggle
   :after vterm
   :bind (("C-`" . vterm-toggle))
   :config
   (setq vterm-toggle-fullscreen-p nil))
-
-;; Eat - Fast terminal emulator implemented in Emacs Lisp
-(straight-use-package
- '(eat :type git
-       :host codeberg
-       :repo "akib/emacs-eat"
-       :files ("*.el" ("term" "term/*.el") "*.texi"
-               "*.ti" ("terminfo/e" "terminfo/e/*")
-               ("terminfo/65" "terminfo/65/*")
-               ("integration" "integration/*")
-               (:exclude ".dir-locals.el" "*-tests.el"))))
-
 
 ;;; =====================================================================
 ;;; Language-specific Modes
@@ -981,22 +909,81 @@ See URL 'https://github.com/aws-cloudformation/cfn-lint'."
   :commands esup)
 
 ;;; =====================================================================
+;;; Org-roam - Networked Note Taking
+;;; =====================================================================
+
+;; Org-roam - Build a personal knowledge management system
+(use-package org-roam
+  :ensure t
+  :defer t
+  :custom
+  ;; Set your notes directory - change this to your preferred location
+  (org-roam-directory "~/Documents/org-roam/")
+
+  ;; Database location
+  (org-roam-db-location (concat org-roam-directory "org-roam.db"))
+
+  ;; Completion system (uses your existing Vertico setup)
+  (org-roam-completion-everywhere t)
+
+  ;; Node display template - shows title and tags
+  (org-roam-node-display-template
+   (concat "${title:*} " (propertize "${tags:10}" 'face 'org-tag)))
+
+  :bind
+  ;; Essential org-roam keybindings with "C-c n" prefix
+  ("C-c n f" . org-roam-node-find)        ; Find or create node
+  ("C-c n i" . org-roam-node-insert)      ; Insert link to node
+  ("C-c n c" . org-roam-capture)          ; Quick capture
+  ("C-c n l" . org-roam-buffer-toggle)    ; Show backlinks buffer
+  ("C-c n g" . org-roam-graph)            ; Visualize graph (requires graphviz)
+
+  ;; Daily notes
+  ("C-c n j" . org-roam-dailies-capture-today)
+  ("C-c n t" . org-roam-dailies-goto-today)
+  ("C-c n y" . org-roam-dailies-goto-yesterday)
+
+  :config
+  ;; Create org-roam directory if it doesn't exist
+  (unless (file-exists-p org-roam-directory)
+    (make-directory org-roam-directory t))
+
+  ;; Initialize database
+  (org-roam-db-autosync-enable)
+
+  ;; Simple capture templates for beginners
+  ;; (setq org-roam-capture-templates
+  ;;       '(("d" "default" plain "%?"
+  ;;          :if-new (file+head "${slug}.org"
+  ;;                             "#+title: ${title}\n#+date: %U\n\n")
+  ;;          :unnarrowed t)
+  ;;         ("n" "note" plain "%?"
+  ;;          :if-new (file+head "notes/${slug}.org"
+  ;;                             "#+title: ${title}\n#+filetags: :note:\n#+date: %U\n\n")
+  ;;          :unnarrowed t)))
+
+  ;; Daily notes configuration
+  (setq org-roam-dailies-directory "daily/")
+  (setq org-roam-dailies-capture-templates
+        '(("d" "default" entry "* %?"
+           :if-new (file+head "%<%Y-%m-%d>.org"
+                              "#+title: %<%Y-%m-%d>\n#+filetags: :daily:\n\n")))))
+
+;;; =====================================================================
 ;;; Keybindings (Consolidated)
 ;;; =====================================================================
 
-;; Tree-sitter navigation (non-conflicting)
-(with-eval-after-load 'treesit
-  (bind-keys*
-   ("C-M-n" . treesit-end-of-defun)
-   ("C-M-p" . treesit-beginning-of-defun)
-   ("C-M-d" . treesit-beginning-of-thing)
-   ("C-M-u" . treesit-end-of-thing)))
+;; Structural navigation works in both conventional and Tree-sitter modes.
+(bind-keys*
+ ("C-M-n" . end-of-defun)
+ ("C-M-p" . beginning-of-defun)
+ ("C-M-d" . down-list)
+ ("C-M-u" . backward-up-list))
 
 ;;; =====================================================================
 ;;; Custom Settings
 ;;; =====================================================================
 
-(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 (when (file-exists-p custom-file)
   (load custom-file nil 'nomessage))
 
