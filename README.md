@@ -1,7 +1,7 @@
 # Emacs Configuration
 
-A personal Emacs 30 configuration for macOS, focused on built-in project and
-language tooling with a modern completion UI.
+A personal Emacs 30 configuration with optional Omarchy desktop integration,
+built-in project and language tooling, and a modern completion UI.
 
 ## Highlights
 
@@ -31,9 +31,32 @@ Common language servers are installed separately, for example `gopls`,
 
 ## Installation
 
-Clone the repository as `~/.emacs.d` and start Emacs. Missing archive packages
-are installed by use-package. Git packages declared with `:vc`, currently
-Claude Code IDE, are managed by package-vc.
+### Omarchy
+
+Omarchy users should install its Emacs package first, then clone this repository
+to the XDG Emacs configuration directory. The tracked `omarchy.el` shim loads the
+package-managed integration, so theme and font changes continue to sync live.
+
+```bash
+git clone https://github.com/mranallo/.emacs.d.git ~/.config/emacs
+```
+
+The active `~/.config/emacs` directory does not need to be replaced until a
+checkout has been tested. Omarchy-specific integration is skipped automatically
+on systems where `/usr/share/omarchy-emacs/config/omarchy.el` is absent.
+
+Install `cmake` before first using VTerm so Emacs can compile its native module:
+
+```bash
+sudo pacman -S cmake
+```
+
+### Other Systems
+
+Clone the repository as `~/.emacs.d` and start Emacs. The Omarchy integration
+is not loaded unless `/usr/share/omarchy-emacs/config/omarchy.el` is installed.
+Missing archive packages are installed by use-package. Git packages declared
+with `:vc`, currently Claude Code IDE, are managed by package-vc.
 
 Package installation is the only expected first-launch network activity. Font
 and Tree-sitter grammar installation are explicit operations:
