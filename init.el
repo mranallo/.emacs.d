@@ -1,6 +1,10 @@
 ;;; init.el --- Personal Emacs configuration -*- lexical-binding: t -*-
 ;;; Commentary:
 ;;; Code:
+;; Load desktop integration only when the Omarchy package is installed.
+(when (file-readable-p "/usr/share/omarchy-emacs/config/omarchy.el")
+  (load (expand-file-name "omarchy.el" user-emacs-directory) nil 'nomessage))
+
 ;;; =====================================================================
 ;;; Function Definitions (must come first)
 ;;; =====================================================================
@@ -97,6 +101,8 @@ Otherwise returns nil."
       '(("gnu" . 10)
         ("melpa-stable" . 5)
         ("melpa" . 0)))
+;; nerd-icons-completion tracks MELPA and requires the matching icon API.
+(setq package-pinned-packages '((nerd-icons . "melpa")))
 (package-initialize)
 
 ;; Assign this before packages have a chance to write Custom settings.
@@ -136,7 +142,9 @@ Otherwise returns nil."
   (dashboard-setup-startup-hook)
 
   ;; Set the banner to your custom logo
-  (setq dashboard-startup-banner "~/.emacs.d/logo/Nuvola_apps_emacs_vector2.png")
+  (setq dashboard-startup-banner
+        (expand-file-name "logo/Nuvola_apps_emacs_vector2.png"
+                          user-emacs-directory))
 
 
   ;; Content is centered
@@ -835,6 +843,7 @@ Otherwise returns nil."
 
 ;; VTerm - Fully-featured terminal emulator
 (use-package vterm
+  :commands vterm
   :init
   (progn
     (add-to-list 'display-buffer-alist

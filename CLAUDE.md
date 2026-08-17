@@ -15,6 +15,9 @@ APIs and small, verifiable changes.
 - `site-lisp/utilities/utilities.el` contains personal commands.
 - `site-lisp/themes/nordic-night-theme.el` is optional and is not the active
   theme by default.
+- `omarchy.el` delegates to the package-managed Omarchy integration only when
+  `/usr/share/omarchy-emacs/config/omarchy.el` is installed.
+- `shell-bashrc` provides the shell-mode environment used by Omarchy.
 
 ## Package Policy
 
